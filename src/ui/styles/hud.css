@@ -1,0 +1,505 @@
+/**
+ * HUD layer: timing tower, speed plate, minimap frame, camera and day/night
+ * buttons, start-light gantry, and the top-center toast.
+ *
+ * Every panel is a solid navy block with the one bottom-right chamfer. The
+ * speed numeral is the loudest element; everything else stays quiet.
+ */
+
+.hud {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-hud);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--hud-gap);
+  height: 100dvh;
+  padding:
+    calc(var(--safe-top) + var(--hud-edge))
+    calc(var(--safe-right) + var(--hud-edge))
+    calc(var(--safe-bottom) + var(--hud-edge))
+    calc(var(--safe-left) + var(--hud-edge));
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--dur-fast) ease,
+    visibility 0s linear var(--dur-fast);
+}
+
+.hud.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--dur-fast) ease;
+}
+
+/* ---- Timing tower ------------------------------------------------------- */
+
+.hud__timing {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  width: var(--timing-width);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%,
+    0 100%
+  );
+}
+
+.timing__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.timing__row:last-child {
+  border-bottom: 0;
+}
+
+.timing__row--best {
+  padding-left: 9px;
+  border-left: var(--active-bar);
+}
+
+.timing__label {
+  color: var(--color-steel);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  line-height: 1.2;
+}
+
+.timing__value {
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-style: italic;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.timing__row--current .timing__value,
+.timing__row--best .timing__value {
+  font-size: var(--text-md);
+}
+
+.timing__row--best .timing__value {
+  color: var(--color-yellow);
+  font-weight: 700;
+}
+
+.timing__row--delta.is-faster .timing__value {
+  color: var(--color-green);
+}
+
+.timing__row--delta.is-slower .timing__value {
+  color: var(--color-red);
+}
+
+/* ---- Speed and boost ---------------------------------------------------- */
+
+.hud__speed {
+  grid-column: 2;
+  grid-row: 3;
+  justify-self: center;
+  align-self: end;
+}
+
+.speed {
+  width: var(--speed-plate-width);
+  padding: 8px 14px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%,
+    0 100%
+  );
+  text-align: center;
+}
+
+.speed__readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  line-height: 0.82;
+}
+
+.speed__value {
+  min-width: 3ch;
+  color: var(--color-yellow);
+  font-family: var(--font-display);
+  font-size: var(--text-speed);
+  font-style: italic;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  line-height: 0.8;
+  text-align: right;
+}
+
+.speed__unit {
+  color: var(--color-steel);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.speed__boost {
+  height: 3px;
+  margin-top: 5px;
+  overflow: hidden;
+  background: rgb(138 148 166 / 32%);
+}
+
+.speed__boost-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--color-yellow);
+  transform: scaleX(1);
+  transform-origin: left center;
+  transition: transform 80ms linear;
+}
+
+/* ---- Camera and day/night ---------------------------------------------- */
+
+.hud__buttons {
+  grid-column: 3;
+  grid-row: 3;
+  display: flex;
+  align-items: flex-end;
+  justify-self: end;
+  gap: 8px;
+}
+
+.hud-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 44px;
+  padding: 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--color-paper);
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    border-color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease;
+}
+
+.hud-button:hover {
+  border-color: var(--color-paper);
+}
+
+.hud-button:active {
+  background: var(--color-navy);
+}
+
+.hud-button:focus-visible {
+  outline: 2px solid var(--color-yellow);
+  outline-offset: 2px;
+}
+
+.hud-button__label {
+  color: var(--color-steel);
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.hud-button__value {
+  color: var(--color-paper);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.hud-button--daynight {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-button--pause {
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.hud-button--pause .hud-button__value {
+  font-size: var(--text-sm);
+}
+
+.hud-button__icon {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+}
+
+.hud-button__icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--color-paper);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- Persistent controls panel ----------------------------------------- */
+
+.controls-panel {
+  position: fixed;
+  top: calc(var(--safe-top) + var(--hud-edge));
+  right: calc(var(--safe-right) + var(--hud-edge));
+  z-index: var(--z-hud);
+  display: flex;
+  flex-direction: column;
+  width: var(--controls-width);
+  max-height: calc(
+    100dvh - var(--safe-top) - var(--safe-bottom) - var(--hud-edge) - var(--hud-edge) -
+      104px
+  );
+  background: var(--panel);
+  border: 1px solid var(--border);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%,
+    0 100%
+  );
+  pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--dur-fast) ease,
+    visibility 0s linear var(--dur-fast),
+    width var(--dur-med) ease;
+}
+
+.controls-panel.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--dur-fast) ease,
+    width var(--dur-med) ease;
+}
+
+.controls-panel.is-collapsed {
+  width: clamp(142px, 16vw, 190px);
+}
+
+.controls-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 10px 8px 12px;
+}
+
+.controls-panel__title {
+  margin: 0;
+  color: var(--color-paper);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.controls-panel__toggle {
+  padding: 4px 2px;
+  background: transparent;
+  border: 0;
+  color: var(--color-steel);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.controls-panel__toggle:hover {
+  color: var(--color-paper);
+}
+
+.controls-panel__toggle:focus-visible {
+  outline: 2px solid var(--color-yellow);
+  outline-offset: 2px;
+}
+
+.controls-panel__body {
+  padding: 10px 12px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--divider);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-steel) transparent;
+}
+
+.controls-panel__list {
+  gap: 14px;
+}
+
+.controls-panel .control-group__title {
+  margin-bottom: 2px;
+  font-size: var(--text-xs);
+}
+
+.controls-panel .control-row {
+  grid-template-columns: minmax(56px, auto) 1fr;
+  gap: 8px;
+  min-height: 24px;
+  padding: 2px 0 2px 6px;
+}
+
+.controls-panel .control-row__label {
+  font-size: var(--text-xs);
+}
+
+.controls-panel .control-key {
+  min-width: 22px;
+  height: 20px;
+  padding: 0 5px;
+  font-size: 11px;
+}
+
+.controls-panel .control-key-or {
+  font-size: 9px;
+}
+
+@media (min-width: 1280px) {
+  .controls-panel__list {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 18px;
+    align-items: start;
+  }
+}
+
+/* ---- Minimap ----------------------------------------------------------- */
+
+.minimap {
+  grid-column: 1;
+  grid-row: 3;
+  justify-self: start;
+  align-self: end;
+  width: var(--minimap-size);
+  height: var(--minimap-size);
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+
+.minimap__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- Start lights ------------------------------------------------------ */
+
+.start-lights {
+  position: fixed;
+  top: calc(var(--safe-top) + clamp(72px, 17vh, 160px));
+  left: 50%;
+  z-index: var(--z-countdown);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%);
+  pointer-events: none;
+  transition:
+    opacity var(--dur-fast) ease,
+    visibility 0s linear var(--dur-fast);
+}
+
+.start-lights.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--dur-fast) ease;
+}
+
+.start-lights__beam {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.6vmin, 16px);
+  padding:
+    clamp(10px, 1.5vmin, 16px)
+    clamp(18px, 2.4vmin, 26px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%,
+    0 100%
+  );
+}
+
+.start-lights__lamp {
+  width: clamp(18px, 2.6vmin, 26px);
+  aspect-ratio: 1;
+  border: 1px solid var(--color-steel);
+  border-radius: 50%;
+  background: var(--color-navy);
+  transition:
+    background-color 80ms linear,
+    border-color 80ms linear;
+}
+
+.start-lights__lamp.is-lit {
+  border-color: var(--color-red);
+  background: var(--color-red);
+}
+
+/* ---- Toast ------------------------------------------------------------- */
+
+.toast {
+  top: calc(var(--safe-top) + var(--hud-edge));
+  bottom: auto;
+  z-index: var(--z-toast);
+  max-width: min(72vw, 360px);
+  border-left: 1px solid var(--border);
+  border-radius: var(--radius);
+  transform: translate(-50%, -6px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.toast.is-warning {
+  border-left: 3px solid var(--color-red);
+}
+
+.toast.is-best {
+  border-left: 3px solid var(--color-yellow);
+}
+
+.toast.is-visible {
+  transform: translate(-50%, 0);
+}

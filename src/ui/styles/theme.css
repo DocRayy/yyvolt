@@ -1,0 +1,229 @@
+/**
+ * YYVOLT UI design plan - Phase 9a
+ *
+ * Specific idea
+ * -------------
+ * YYVOLT's HUD is the race-control side of a toy F1 box: flat navy panels cut
+ * with one broadcast chamfer, a huge yellow italic speed numeral, and an orange
+ * circuit line printed on the plastic track.
+ *
+ * Tokens
+ * ------
+ * Color
+ *   --color-navy      #12223F  panel and menu fills
+ *   --color-paper     #F4F6F8  primary text
+ *   --color-steel     #8A94A6  secondary text, borders, inactive rows
+ *   --color-yellow    #FFC20E  player car, active/selected, personal best
+ *   --color-orange    #F4511E  minimap track and checkpoint marks only
+ *   --color-red       #D7263D  warnings, wrong way, start lights, negative delta
+ *   --color-green     #2BB673  positive delta only
+ *
+ *   Panel fill: solid navy. Overlay tint may be rgb(18 34 63 / 92%), never blur.
+ *   Border: rgb(138 148 166 / 42%). Divider: rgb(138 148 166 / 28%).
+ *
+ * Type
+ *   --font-display: 'Barlow Condensed', 600/700, italic for numerals
+ *   --font-body: 'Barlow', 400/500/600
+ *   --text-xs: 12px; --text-sm: 14px; --text-md: 18px; --text-lg: 28px
+ *   --text-speed: clamp(56px, 10.5vmin, 112px)
+ *   Display line-height 0.9, body 1.25. Every changing number uses
+ *   font-variant-numeric: tabular-nums.
+ *
+ * Spacing and layout
+ *   4 / 8 / 12 / 16 / 24 / 32 / 48px
+ *   --hud-edge: clamp(14px, 2.2vmin, 28px)
+ *   --hud-gap: clamp(10px, 1.6vmin, 20px)
+ *   --timing-width: clamp(210px, 25vw, 320px)
+ *   --controls-width: clamp(300px, 28vw, 420px)
+ *   --minimap-size: clamp(92px, 12vmin, 144px)
+ *   --speed-plate-width: clamp(180px, 24vmin, 300px)
+ *   --safe-top/right/bottom/left: env(safe-area-inset-*, 0px)
+ *
+ * Shape
+ *   One signature: a bottom-right chamfer, clamp(10px, 1.3vmin, 16px), cut from
+ *   every HUD panel. Keys, buttons, and the minimap use a 2px radius. No other
+ *   rounding. --active-bar: 3px solid yellow; --focus: 2px yellow outline with
+ *   2px offset (paper outline on a yellow-filled button).
+ *
+ * Motion and depth
+ *   --dur-fast: 120ms; --dur-med: 180ms; --dur-slow: 420ms.
+ *   Only the start lights, boost fill, toast, panel collapse, and key press
+ *   animate. No shadows, blur, glow, or gradients. The 3D room supplies depth.
+ *   Layers: world 0, HUD 10, toast 20, menu/pause/result 30, boot 40.
+ *
+ * HUD wireframe - desktop
+ * -----------------------
+ * +----------------------------------------------------------------------------+
+ * | Timing tower (top-left)                         Controls (top-right)       |
+ * | Lap       1/3                                    Controls          Hide    |
+ * | Current   00:18.420                              Drive                     |
+ * | Last      00:19.102                              W    Accelerate           |
+ * | Best      00:18.420  [yellow]                    S    Brake and reverse    |
+ * | Delta     -0.682     [green]                     ...                       |
+ * |                                                                             |
+ * |                 [ Start light gantry: o o o o o ]   countdown only          |
+ * |                                                                             |
+ * | Minimap (bottom-left)          Speed + boost (bottom-center)               |
+ * | +------------+                    128  km/h          Camera + day/night     |
+ * | |    /\      |                  [boost bar]          Chase      Day        |
+ * | +------------+                                                              |
+ * +----------------------------------------------------------------------------+
+ *
+ * The controls panel pairs its key/action rows into two columns at 1280px and
+ * wider, then becomes one compact column below that. HUD panels never overlap
+ * the timing tower, minimap, speed plate, or each other.
+ *
+ * Compact HUD, under 700px wide
+ *   Timing tower: lap x/3, current lap, best lap only.
+ *   Controls: one column; replaced by a plain "Controls" button on touch
+ *   devices in Phase 11, with no keyboard hints.
+ *   Minimap: 90-110px. Speed stays the largest element.
+ *   On touch devices the minimap moves to the top-right under the top buttons;
+ *   the steering pads own the bottom-left, so nothing covers them.
+ *   Menus: one column, full-width buttons at least 48px tall.
+ *   Overlays use 100dvh, safe-area padding, and no horizontal scroll.
+ *   Toast: top center, below the top buttons, max-width min(72vw, 360px).
+ *
+ * Component decisions
+ * -------------------
+ * Timing tower
+ *   No eyebrow title. Five rows: Lap, Current, Last, Best, Delta. The best
+ *   value and its 3px left bar are yellow. Delta shows a sign and uses green or
+ *   red, never color alone.
+ *
+ * Speed
+ *   One large italic tabular numeral in livery yellow on a solid navy plate.
+ *   "km/h" is 12px steel. A thin 3px yellow boost bar sits directly underneath.
+ *   No arc, gauge, ring, or dial.
+ *
+ * Minimap
+ *   Solid navy square, track orange line, yellow triangle car. No grid,
+ *   compass, or legend.
+ *
+ * Controls
+ *   Generated from controls.config.js. Key box on the left, action on the
+ *   right. Group headings in sentence case. Active camera row has a 3px yellow
+ *   left bar. Held keys invert to yellow background and navy text. Header is
+ *   just "Controls" and "Hide"/"Show".
+ *
+ * Camera and day/night
+ *   Plain text buttons at bottom-right with one-stroke sun and moon SVGs. No
+ *   emoji and no pill buttons.
+ *
+ * Start lights
+ *   One navy beam with five red lamps, lit one at a time; all go dark together
+ *   for go. This is the single loud UI moment. Nothing else glows. Phase 8
+ *   audio reacts to countdown:light and countdown:go.
+ *
+ * Toast
+ *   Solid navy, 1px steel border, paper text, top center. Warnings use a 3px
+ *   kerb-red left bar; ordinary status messages do not add an accent. It never
+ *   overlaps the top buttons.
+ *
+ * Menus
+ *   Solid navy block over the slowly drifting room. YYVOLT wordmark in Barlow
+ *   Condensed bold italic with the flat yellow bolt. Buttons: "Start race"
+ *   (yellow fill) and "Controls" (outlined). Enter starts the race. Pause uses
+ *   "Resume", "Restart", and "Controls". Results are a plain lap table with the
+ *   best lap yellow and "Race again" as the primary action; no medals or
+ *   confetti. In the result state only, R means race again; while racing it
+ *   still resets to the last checkpoint.
+ *
+ * Copy
+ *   Sentence case, plain verbs, no exclamation marks. The same action keeps the
+ *   same name in buttons, menus, and toasts.
+ *
+ * Banned-list review
+ * ------------------
+ * Solid navy, no blur or glass. Flat fills, no gradients. No glow or decorative
+ * shadow. Barlow only. Sentence case. No emoji. No all-caps tracked labels. No
+ * "WORD - fragment" labels. No middle-dot meta strings. No arrow appended to
+ * buttons. No 01/02/03 markers. No identical rounded cards. No monospace small
+ * labels. No placeholder copy. No hover scale. Motion only answers an action or
+ * marks a state. Keyboard focus is always visible. Menu camera drift stops when
+ * prefers-reduced-motion is set. HUD containers are pointer-events: none;
+ * only buttons and the controls panel receive pointer events.
+ */
+
+:root {
+  --color-navy: #12223f;
+  --color-paper: #f4f6f8;
+  --color-steel: #8a94a6;
+  --color-yellow: #ffc20e;
+  --color-orange: #f4511e;
+  --color-red: #d7263d;
+  --color-green: #2bb673;
+
+  /* Boot-shell compatibility aliases. The boot tokens stay inline so the shell
+     paints before this stylesheet arrives; these aliases keep both systems on
+     the same values once the UI is loaded. */
+  --navy: var(--color-navy);
+  --paper: var(--color-paper);
+  --steel: var(--color-steel);
+  --yellow: var(--color-yellow);
+  --kerb-red: var(--color-red);
+
+  --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --panel: var(--color-navy);
+  --panel-overlay: rgb(18 34 63 / 92%);
+  --border: rgb(138 148 166 / 42%);
+  --divider: rgb(138 148 166 / 28%);
+
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 18px;
+  --text-lg: 28px;
+  --text-speed: clamp(56px, 10.5vmin, 112px);
+
+  --hud-edge: clamp(14px, 2.2vmin, 28px);
+  --hud-gap: clamp(10px, 1.6vmin, 20px);
+  --timing-width: clamp(210px, 25vw, 320px);
+  --controls-width: clamp(300px, 28vw, 420px);
+  --minimap-size: clamp(92px, 12vmin, 144px);
+  --speed-plate-width: clamp(180px, 24vmin, 300px);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  --chamfer: clamp(10px, 1.3vmin, 16px);
+  --radius: 2px;
+  --active-bar: 3px solid var(--color-yellow);
+
+  --dur-fast: 120ms;
+  --dur-med: 180ms;
+  --dur-slow: 420ms;
+
+  --z-world-overlay: 2;
+  --z-hud: 10;
+  --z-touch: 12;
+  --z-countdown: 15;
+  --z-toast: 20;
+  --z-menu: 30;
+  --z-rotate: 35;
+  --z-boot: 40;
+
+  color-scheme: dark;
+}
+
+button {
+  font: inherit;
+}
+
+.boot {
+  z-index: var(--z-boot);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
