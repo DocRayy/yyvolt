@@ -69,7 +69,7 @@ const MENU_MARKUP = `
 `;
 
 export class Menu {
-  constructor({ bus, lapTimer, touch = false, settingsScreen = null, garageScreen = null } = {}) {
+  constructor({ bus, lapTimer, touch = false, settingsScreen = null, garageScreen = null, trackSelectScreen = null } = {}) {
     if (!bus) throw new Error('Menu needs an EventBus.');
 
     this.bus = bus;

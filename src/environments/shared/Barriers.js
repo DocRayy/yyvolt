@@ -16,6 +16,7 @@ import {
   InstancedMesh,
   Matrix4,
   MeshStandardMaterial,
+  Quaternion,
   Vector3,
 } from 'three';
 import { TRACK } from '../../config/track.config.js';

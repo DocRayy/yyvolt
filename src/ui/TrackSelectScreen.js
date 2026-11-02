@@ -81,7 +81,7 @@ export class TrackSelectScreen {
 
   /** Build cards for every registered environment. */
   renderCards() {
-    return ENVIRONMENTS.map((env) => {
+    return ENVIRONMENTS.map((env, index) => {
       const track = this.getTrackDefinition(env.id);
       // Calculate track length from the centreline samples.
       let length = 0;

@@ -19,6 +19,8 @@ import {
   Vector3,
 } from 'three';
 
+import * as THREE from 'three';
+
 /** Pastel colour palette for the buildings. */
 const PALETTE = [
   0xbfd8e8, // pastel blue

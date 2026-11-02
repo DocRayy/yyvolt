@@ -19,6 +19,8 @@ import {
   Vector3,
 } from 'three';
 
+import * as THREE from 'three';
+
 const RANDOM = { seed: 55 };
 RANDOM.next = function () {
   this.seed = (this.seed * 1664525 + 1013904223) >>> 0;

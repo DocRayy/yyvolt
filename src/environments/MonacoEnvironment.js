@@ -36,6 +36,8 @@ import { DayNightController } from '../lighting/DayNightController.js';
 import { CameraRig } from '../camera/CameraRig.js';
 import { EnvironmentMap } from '../world/EnvironmentMap.js';
 import { ENVIRONMENT } from '../config/constants.js';
+import { Group, Mesh, BoxGeometry, MeshStandardMaterial, PlaneGeometry, ConeGeometry, InstancedMesh, Vector3, Quaternion } from 'three';
+import { CAMERA_MODES } from '../config/cameras.config.js';
 
 export class MonacoEnvironment extends Environment {
   constructor() {

@@ -233,9 +233,9 @@ export class SkyDome {
     this.group.add(this.sun);
 
     // The moon (a soft disc with a subtle glow behind it).
-    const moonCanvas = makeSunCanvas(false);
+    this.moonCanvas = makeSunCanvas(false);
     this.moonMat = new MeshBasicMaterial({
-      map: moonCanvas,
+      map: this.moonCanvas,
       transparent: true,
       depthWrite: false,
     });
@@ -283,13 +283,13 @@ export class SkyDome {
     const maps = [daySkyCanvas, nightSkyCanvas];
     this.skyMat.map = maps[Math.round(t)];
     this.skyMat.needsUpdate = true;
-    this.starsMat.map = stars[(t > 0.5) ? 1 : 0];
+    this.starsMat.map = starCanvas;
     this.starsMat.needsUpdate = true;
     this.cloudMat.opacity = 0.2 + 0.45 * (1 - t);
     this.cloudMat.needsUpdate = true;
     this.sunMat.map = makeSunCanvas(false);
     this.sunMat.needsUpdate = true;
-    this.moonMat.map = moonCanvas;
+    this.moonMat.map = this.moonCanvas;
     this.moonMat.needsUpdate = true;
   }
 

@@ -18,6 +18,7 @@
 import { CarFactory } from '../car/CarFactory.js';
 import { CARS } from '../config/cars.config.js';
 import { COLORS } from '../config/colors.config.js';
+import * as THREE from 'three';
 
 const MARKUP = `
   <div class="garage" role="dialog" aria-modal="true" aria-labelledby="garage-title">

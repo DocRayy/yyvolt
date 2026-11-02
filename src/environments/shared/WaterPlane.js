@@ -10,10 +10,12 @@
 import {
   BufferGeometry,
   Color,
+  DoubleSide,
   Float32BufferAttribute,
   Group,
   Mesh,
   MeshStandardMaterial,
+  PlaneGeometry,
   Vector3,
 } from 'three';
 

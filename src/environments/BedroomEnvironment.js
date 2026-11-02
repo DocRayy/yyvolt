@@ -10,6 +10,7 @@
  */
 
 import { Environment } from './Environment.js';
+import { batchStaticMeshes } from '../world/StaticBatcher.js';
 import { TRACK } from '../config/track.config.js';
 import { DAY_PRESET, NIGHT_PRESET } from '../config/lighting.config.js';
 import { CAMERA_MODES } from '../config/cameras.config.js';

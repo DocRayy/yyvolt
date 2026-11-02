@@ -22,6 +22,7 @@ import {
 import { AudioManager } from '../audio/AudioManager.js';
 import { CameraRig } from '../camera/CameraRig.js';
 import { GarageScreen } from '../ui/GarageScreen.js';
+import { TrackSelectScreen } from '../ui/TrackSelectScreen.js';
 import { CAR } from '../config/car.config.js';
 import { COLORS, ENVIRONMENT, RENDERER, TIMING } from '../config/constants.js';
 import { DAY_PRESET } from '../config/lighting.config.js';

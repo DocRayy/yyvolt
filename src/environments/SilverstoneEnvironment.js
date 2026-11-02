@@ -31,6 +31,7 @@ import { CameraRig } from '../camera/CameraRig.js';
 import { EnvironmentMap } from '../world/EnvironmentMap.js';
 import { ENVIRONMENT } from '../config/constants.js';
 import { CAMERA_MODES } from '../config/cameras.config.js';
+import { Mesh, PlaneGeometry, MeshStandardMaterial, Vector3, ConeGeometry, InstancedMesh, BoxGeometry } from 'three';
 
 const SILVERSTONE_POINTS = Object.freeze([
   [-36.2, 0.02, -35.6],

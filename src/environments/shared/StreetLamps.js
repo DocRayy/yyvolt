@@ -10,13 +10,17 @@
 import {
   BoxGeometry,
   Color,
+  ConeGeometry,
   CylinderGeometry,
   DoubleSide,
   Group,
+  Matrix4,
   Mesh,
   MeshStandardMaterial,
   Vector3,
 } from 'three';
+
+import * as THREE from 'three';
 
 const RANDOM = { seed: 37 };
 RANDOM.next = function () {

@@ -15,8 +15,11 @@ import {
   Matrix4,
   Mesh,
   MeshStandardMaterial,
+  Quaternion,
   Vector3,
 } from 'three';
+
+import * as THREE from 'three';
 
 const RANDOM = { seed: 7 };
 RANDOM.next = function () {

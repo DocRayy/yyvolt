@@ -13,6 +13,8 @@ import {
   InstancedMesh,
   Matrix4,
   MeshStandardMaterial,
+  PlaneGeometry,
+  Quaternion,
   Vector3,
 } from 'three';
 
