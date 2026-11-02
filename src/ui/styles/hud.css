@@ -503,3 +503,33 @@
 .toast.is-visible {
   transform: translate(-50%, 0);
 }
+
+.hud__fps {
+  grid-column: 3;
+  grid-row: 3;
+  justify-self: end;
+  align-self: end;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 var(--hud-edge) var(--hud-edge) 0;
+  pointer-events: none;
+}
+
+.hud__fps[hidden] {
+  display: none;
+}
+
+.hud__fps__label {
+  font-size: var(--text-sm);
+  color: var(--color-steel);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__fps__value {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-steel);
+  font-variant-numeric: tabular-nums;
+}

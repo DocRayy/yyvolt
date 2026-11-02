@@ -1,11 +1,18 @@
 /**
  * Toy F1 car dimensions, arcade handling, and visual tuning.
  *
- * The car is intentionally larger than a strict scale model: a 0.66-unit car on
- * a 1.2-unit toy track reads clearly from the chase and broadcast cameras. All
- * handling values are acceleration / damping terms rather than forces, because
- * this is an arcade car with no physics engine. World units are metres.
+ * The car is intentionally larger than a strict scale model. All handling
+ * values are acceleration / damping terms rather than forces, because this is
+ * an arcade car with no physics engine. World units are metres.
  */
+
+/**
+ * Overall body width across the widest hardpoints: the front-wing endplates
+ * and a front wheel at full steering lock. Track width and the invisible wall
+ * limit both derive from this one number (V2 spec).
+ */
+export const CAR_WIDTH = 0.42;
+
 export const CAR = Object.freeze({
   dimensions: Object.freeze({
     // Main hardpoints shared by the model, wheels, and ground probes.
@@ -37,12 +44,10 @@ export const CAR = Object.freeze({
 
     rollingDrag: 0.32,
     aeroDrag: 0.014,
-    offTrackDrag: 1.1,
-    rugDrag: 2.4,
 
-    gripTrack: 8.5,
-    gripFloor: 4.6,
-    gripRug: 5.4,
+    // The track is the only surface the car can be on, so there is one grip
+    // value. Handbrake scales it down for a controlled slide.
+    grip: 8.5,
     handbrakeGripScale: 0.22,
 
     steerMax: 0.58,
@@ -98,9 +103,7 @@ export const CAR = Object.freeze({
       maxParticles: 64,
       sprayRate: 18,
       slipRate: 46,
-      offTrackRate: 26,
       slipThreshold: 0.55,
-      offTrackSpeed: 0.8,
       lifeMin: 0.45,
       lifeMax: 0.85,
       sizeMin: 0.06,

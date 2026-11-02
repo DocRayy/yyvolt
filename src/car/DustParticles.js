@@ -91,12 +91,11 @@ export class DustParticles {
     return this.randomState / 4294967296;
   }
 
-  /** Emission follows slide, handbrake lock-up, and off-track scrubbing. */
+  /** Emission follows slide and handbrake lock-up. */
   fixedUpdate(dt) {
     if (!(dt > 0)) return;
 
     const physics = this.car.physics;
-    const surface = this.car.surfaceResult;
     const config = this.config;
     const speed = Math.abs(physics.speed);
     const slip = Math.abs(physics.lateralSpeed);
@@ -107,9 +106,6 @@ export class DustParticles {
         rate += config.sprayRate + (slip / config.slipThreshold) * config.slipRate;
       }
       if (physics.handbrake > 0.2) rate += config.slipRate * 0.5;
-      if (!surface.onTrack && speed > config.offTrackSpeed) {
-        rate += config.offTrackRate;
-      }
     }
 
     if (rate <= 0) {

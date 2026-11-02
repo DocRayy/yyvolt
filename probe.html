@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #12223f; }
+  </style>
+</head>
+<body>
+  <div id="scene"></div>
+  <script type="module">
+    import './src/main.js';
+    const g = Game ? Game : null;
+    setTimeout(() => {
+      // Wait for game to be ready (progress bar at 100%)
+      setTimeout(() => {
+        const renderer = (typeof document !== 'undefined') ? (document.querySelector('canvas') || document.querySelector('webglcanvas')) : null;
+        let calls = 'n/a';
+        if (renderer && renderer.info && renderer.info.render) {
+          calls = renderer.info.render.calls;
+        }
+        console.log(JSON.stringify({ desktopRenderCalls: calls }));
+        // Resize to mobile
+        if (window.resizeTo) window.resizeTo(375, 667);
+        setTimeout(() => {
+          if (renderer && renderer.info && renderer.info.render) {
+            const mc = renderer.info.render.calls;
+            console.log(JSON.stringify({ mobileRenderCalls: mc }));
+          }
+        }, 1500);
+      }, 3000);
+    }, 500);
+  </script>
+</body>
+</html>

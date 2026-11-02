@@ -60,7 +60,6 @@ export class SkidMarks {
     const surface = this.car.surfaceResult;
     const speed = Math.abs(physics.speed);
     const drifting =
-      surface.onTrack &&
       speed > config.speed &&
       (physics.handbrake > 0.25 || Math.abs(physics.lateralSpeed) > config.slip);
 

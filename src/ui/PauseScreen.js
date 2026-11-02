@@ -12,6 +12,7 @@ import {
   buildControlGroupsMarkup,
   buildTouchHelpMarkup,
 } from './ControlList.js';
+import { SettingsScreen } from '../ui/SettingsScreen.js';
 
 const PAUSE_MARKUP = `
   <div
@@ -35,6 +36,9 @@ const PAUSE_MARKUP = `
         </button>
         <button class="menu-button menu-button--secondary" type="button" data-controls>
           Controls
+        </button>
+        <button class="menu-button menu-button--secondary" type="button" data-settings>
+          Settings
         </button>
       </div>
 
@@ -77,12 +81,14 @@ const PAUSE_MARKUP = `
 `;
 
 export class PauseScreen {
-  constructor({ bus, touch = false } = {}) {
+  constructor({ bus, touch = false, settingsScreen = null } = {}) {
     if (!bus) throw new Error('PauseScreen needs an EventBus.');
 
     this.bus = bus;
     this.visible = false;
     this.isTouch = touch;
+    this.settingsScreen = settingsScreen;
+    this.settingsClick = () => this.settingsScreen?.show();
 
     this.root = document.createElement('div');
     this.root.className = 'pause';
@@ -122,6 +128,7 @@ export class PauseScreen {
       this.bus.emit('ui:click');
       this.showControls();
     };
+    this.settingsClick = () => this.settingsScreen?.show();
     this.backClick = () => {
       this.bus.emit('ui:click');
       this.showActions();
@@ -138,9 +145,12 @@ export class PauseScreen {
     this.resumeButton.addEventListener('click', this.resumeClick);
     this.restartButton.addEventListener('click', this.restartClick);
     this.controlsButton.addEventListener('click', this.controlsClick);
+    this.settingsButton = this.root.querySelector('[data-settings]');
+    this.settingsButton.addEventListener('click', this.settingsClick);
     this.backButton.addEventListener('click', this.backClick);
     this.tiltSetting.addEventListener('click', this.tiltClick);
     this.vibrationSetting.addEventListener('click', this.vibrationClick);
+    this.root.addEventListener('keydown', this.onRootKeydown);
 
     this.unsubscribeState = bus.on('state:changed', ({ current }) => {
       if (current === GAME_STATES.PAUSED) this.show();
@@ -223,6 +233,13 @@ export class PauseScreen {
     this.vibrationState.textContent =
       settings.vibrationEnabled === true ? 'On' : 'Off';
     this.touchStatus.textContent = settings.tiltError ?? '';
+  }
+
+  onRootKeydown(event) {
+    if (event.code === 'Escape' && this.settingsScreen?.visible) {
+      event.preventDefault();
+      this.settingsScreen.hide();
+    }
   }
 
   dispose() {

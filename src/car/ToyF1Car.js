@@ -1,19 +1,22 @@
 /**
- * Gameplay-facing car object: model, arcade simulation, surface sampling, and
- * checkpoint crossing in one small orchestration layer.
+ * Gameplay-facing car object: model, arcade simulation, surface sampling, wall
+ * collision, and checkpoint crossing in one small orchestration layer.
  *
  * Game calls fixedUpdate() at 60 Hz and updateRender(alpha) once per frame.
  * The split is what makes motion independent of monitor refresh rate: physics
  * only ever sees identical steps, and the model is drawn between the last two
  * simulation states.
+ *
+ * Since V2 the car can never leave the track. TrackCollider clamps it inside
+ * the ribbon every substep and owns the 'car:collide' event; this class only
+ * has to keep the model, the surface height, and the checkpoint sweep in sync.
  */
 import { Vector3 } from 'three';
-import { CAR } from '../config/car.config.js';
-import { COLLISION } from '../config/collision.config.js';
+import { CAR, CAR_WIDTH } from '../config/car.config.js';
+import { CARS } from '../config/cars.config.js';
 import { TrackSurface } from '../track/TrackSurface.js';
-import { clamp, damp, lerp, lerpAngle } from '../utils/math.js';
-import { CollisionWorld } from '../world/CollisionWorld.js';
-import { CarModel } from './CarModel.js';
+import { damp, lerp, lerpAngle } from '../utils/math.js';
+import { CarFactory, loadCarConfig, saveCarConfig } from './CarFactory.js';
 import { CarPhysics } from './CarPhysics.js';
 
 export class ToyF1Car {
@@ -21,11 +24,15 @@ export class ToyF1Car {
     trackPath,
     textures,
     checkpoints,
+    collider,
     bus,
     maxDynamicLights = null,
+    typeId = null,
+    colorId = null,
   }) {
     this.trackPath = trackPath;
     this.checkpoints = checkpoints ?? null;
+    this.collider = collider ?? null;
     this.bus = bus ?? null;
 
     // Reserve one of the mobile light slots for the desk lamp, then spend the
@@ -34,24 +41,30 @@ export class ToyF1Car {
       maxDynamicLights === null
         ? undefined
         : Math.max(1, maxDynamicLights - 1);
-    this.model = new CarModel(textures, { headlightCount });
+
+    // The saved {type, color} picks the model and the multipliers. The
+    // defaults are F1 + yellow; the read is wrapped in try/catch so a missing
+    // or corrupt save still leaves the game running.
+    const saved = loadCarConfig();
+    this.typeId = typeId ?? saved.type;
+    this.colorId = colorId ?? saved.color;
+    this.model = new CarFactory(textures).create(this.typeId, this.colorId);
     this.group = this.model.group;
     this.mounts = this.model.mounts;
     this.helmet = this.model.helmet;
     this.visor = this.model.visor;
 
-    this.physics = new CarPhysics({ bus });
-    this.collision = new CollisionWorld();
-    this.collisionCooldown = 0;
-    this.collisionEvent = {
-      strength: 0,
-      impact: 0,
-      normalX: 0,
-      normalZ: 0,
-      x: 0,
-      y: 0,
-      z: 0,
+    const base = CAR.physics;
+    const car = CARS[this.typeId] ?? CARS.F1;
+    const physics = {
+      ...base,
+      maxSpeed: base.maxSpeed * car.maxSpeed,
+      engineAcceleration: base.engineAcceleration * car.accel,
+      steerMax: base.steerMax * car.steer,
+      grip: base.grip * car.grip,
+      boostAcceleration: base.boostAcceleration * car.boost,
     };
+    this.physics = new CarPhysics({ bus, physics });
     this.surface = new TrackSurface(trackPath);
     this.surfaceResult = this.surface.createResult();
     this.surfaceAhead = this.surface.createResult();
@@ -69,79 +82,80 @@ export class ToyF1Car {
     this.respawn(this.frame.position, this.frame.tangent);
   }
 
+  /**
+   * Split the fixed step so the collider never resolves more than half a car
+   * width of travel at once. At the current top speed one substep is enough;
+   * the guard is what keeps the wall unjumpable if the tuning gets faster.
+   */
+  substepCount(dt) {
+    const speed = Math.hypot(this.physics.velocity.x, this.physics.velocity.z);
+    const budget = CAR_WIDTH / 2;
+    const travel = speed * dt;
+    return travel <= budget ? 1 : Math.min(3, Math.ceil(travel / budget));
+  }
+
   fixedUpdate(dt, input) {
     if (!(dt > 0)) return;
 
-    // Use the surface under the car at the start of the step for grip/drag,
-    // then resample at the new position for height and the ramp pitch.
-    this.surface.sample(
-      this.physics.position.x,
-      this.physics.position.z,
-      this.surfaceResult,
-    );
-    this.physics.update(dt, input, this.surfaceResult);
+    const physics = this.physics;
+    const steps = this.substepCount(dt);
+    const step = dt / steps;
 
-    // Resolve after integration: walls clamp the centre and furniture pushes
-    // along its nearest face, then the reflected world velocity is decomposed
-    // back into forward and lateral speed for the next physics step.
-    this.collisionCooldown = Math.max(0, this.collisionCooldown - dt);
-    const hit = this.collision.resolve(
-      this.physics.position,
-      this.physics.velocity,
-      this.physics.heading,
-    );
-    if (hit) {
-      this.physics.applyContact();
+    // Remember the state at the start of the fixed step. With more than one
+    // substep, physics.update() would otherwise leave previous* pointing at the
+    // last substep, and render interpolation plus the checkpoint sweep would
+    // lose the start of the step.
+    const startX = physics.position.x;
+    const startY = physics.position.y;
+    const startZ = physics.position.z;
+    const startHeading = physics.heading;
+    const startSteering = physics.steering;
+    const startWheelSpin = physics.wheelSpin;
+    const startGroundPitch = physics.groundPitch;
 
-      if (
-        hit.impact >= COLLISION.impactThreshold &&
-        this.collisionCooldown <= 0
-      ) {
-        this.collisionCooldown = COLLISION.eventCooldown;
-        const event = this.collisionEvent;
-        event.strength = clamp(hit.impact / CAR.physics.maxSpeed, 0, 1.4);
-        event.impact = hit.impact;
-        event.normalX = hit.normalX;
-        event.normalZ = hit.normalZ;
-        event.x = this.physics.position.x;
-        event.y = this.physics.position.y;
-        event.z = this.physics.position.z;
-        this.bus?.emit('car:collide', event);
-      }
+    for (let i = 0; i < steps; i += 1) {
+      physics.update(step, input);
+      const hit = this.collider?.resolve(
+        physics.position,
+        physics.velocity,
+        step,
+      );
+      if (hit) physics.applyContact();
     }
 
+    physics.previousPosition.set(startX, startY, startZ);
+    physics.previousHeading = startHeading;
+    physics.previousSteering = startSteering;
+    physics.previousWheelSpin = startWheelSpin;
+    physics.previousGroundPitch = startGroundPitch;
+
     this.surface.sample(
-      this.physics.position.x,
-      this.physics.position.z,
+      physics.position.x,
+      physics.position.z,
       this.surfaceResult,
     );
-    this.physics.position.y = this.surfaceResult.height;
+    physics.position.y = this.surfaceResult.height;
 
     const probe = CAR.dimensions.groundProbe;
-    const forwardX = -Math.sin(this.physics.heading);
-    const forwardZ = -Math.cos(this.physics.heading);
+    const forwardX = -Math.sin(physics.heading);
+    const forwardZ = -Math.cos(physics.heading);
     this.surface.sample(
-      this.physics.position.x + forwardX * probe,
-      this.physics.position.z + forwardZ * probe,
+      physics.position.x + forwardX * probe,
+      physics.position.z + forwardZ * probe,
       this.surfaceAhead,
     );
     this.surface.sample(
-      this.physics.position.x - forwardX * probe,
-      this.physics.position.z - forwardZ * probe,
+      physics.position.x - forwardX * probe,
+      physics.position.z - forwardZ * probe,
       this.surfaceBehind,
     );
 
-    const targetPitch =
-      this.surfaceResult.onTrack &&
-      this.surfaceAhead.onTrack &&
-      this.surfaceBehind.onTrack
-        ? Math.atan2(
-            this.surfaceAhead.height - this.surfaceBehind.height,
-            probe * 2,
-          )
-        : 0;
-    this.physics.groundPitch = damp(
-      this.physics.groundPitch,
+    const targetPitch = Math.atan2(
+      this.surfaceAhead.height - this.surfaceBehind.height,
+      probe * 2,
+    );
+    physics.groundPitch = damp(
+      physics.groundPitch,
       targetPitch,
       CAR.physics.groundPitchLambda,
       dt,
@@ -179,7 +193,7 @@ export class ToyF1Car {
   respawn(position, tangent) {
     const heading = Math.atan2(-tangent.x, -tangent.z);
     this.physics.reset(position, heading);
-    this.collisionCooldown = 0;
+    this.collider?.reset();
     this.surface.sample(position.x, position.z, this.surfaceResult);
     this.physics.position.y = this.surfaceResult.height;
     this.physics.previousPosition.copy(this.physics.position);

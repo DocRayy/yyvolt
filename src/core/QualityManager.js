@@ -88,6 +88,24 @@ export class QualityManager {
     }
   }
 
+  /**
+   * Apply an explicit tier from settings. "auto" is left to the monitor's own
+   * FPS loop; an explicit tier is applied immediately and can be stepped back
+   * down by the monitor later.
+   */
+  setLevel(level) {
+    if (level === 'auto') return;
+    if (!QUALITY.presets[level]) return;
+    if (this.level === level) return;
+
+    this.level = level;
+    this.preset = QUALITY.presets[level];
+    this.warmupElapsed = 0;
+    this.settling = true;
+    this.slowElapsed = 0;
+    this.applyPreset({ announce: false });
+  }
+
   /** Keep monitoring honest after a tab return or a long loading stall. */
   resetMonitor() {
     this.sampleElapsed = 0;

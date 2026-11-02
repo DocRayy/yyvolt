@@ -1,0 +1,145 @@
+/**
+ * src/ui/styles/track-select.css
+ *
+ * Track select screen: flat navy panels, sentence case, no gradients or glass.
+ * Landscape phone: one row of cards, horizontal scroll with snap.
+ */
+
+.track-select {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  background: rgb(18, 34, 63);
+  color: #f4f6f8;
+}
+
+/* --- Header --- */
+.track-select__header {
+  padding: 16px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid rgb(138, 148, 166, 0.35);
+}
+
+.track-select__title {
+  margin: 0;
+  font-family: 'Barlow Condensed', 'system-ui', sans-serif;
+  font-size: 28px;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+}
+
+.track-select__subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #8a94a6;
+}
+
+/* --- Scrollable card row --- */
+.track-select__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 8px 16px 12px;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.track-select__cards {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+}
+
+/* --- Card: flat navy panel with one chamfered corner. --- */
+.track-select__card {
+  flex: 0 0 70vw;
+  max-width: 70vw;
+  min-width: 320px;
+  background: rgb(18, 34, 63);
+  border: 1px solid rgb(138, 148, 166);
+  border-top: 4px solid rgb(244, 81, 30);
+  border-radius: 2px;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  padding: 16px;
+  overflow: hidden;
+  position: relative;
+  scroll-snap-align: start;
+}
+
+/* --- Track outline canvas --- */
+.track-select__canvas {
+  width: 100%;
+  height: 88px;
+  display: block;
+  border-radius: 2px;
+  border: 1px solid rgb(138, 148, 166);
+  background: rgba(244, 246, 248, 0.05);
+}
+
+/* --- Card details --- */
+.track-select__details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.track-select__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #f4f6f8;
+}
+
+.track-select__row .label {
+  color: #8a94a6;
+  text-transform: none;
+}
+
+.track-select__row .value {
+  font-family: 'Barlow Condensed', 'system-ui', sans-serif;
+  font-weight: bold;
+  color: #f4f6f8;
+  text-align: right;
+}
+
+/* --- Start race button: 44px+ target. --- */
+.track-select__start {
+  margin: 12px auto 16px;
+  padding: 14px 24px;
+  background: #FFC20E;
+  color: rgb(18, 34, 63);
+  border: none;
+  border-radius: 2px;
+  font-family: 'Barlow Condensed', 'system-ui', sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  min-height: 44px;
+  width: calc(70vw + 12px);
+  box-sizing: border-box;
+}
+
+.track-select__start:hover {
+  background: #ffd42e;
+}
+
+.track-select__start:focus-visible {
+  outline: 3px solid #F4511E;
+  outline-offset: 2px;
+}
+
+/* --- Reduced motion: no scroll-snap, no transform animations. --- */
+@media (prefers-reduced-motion: reduce) {
+  .track-select__scroll {
+    scroll-snap-type: none;
+  }
+}

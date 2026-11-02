@@ -32,6 +32,7 @@ export class Minimap {
     this.bounds = this.measureTrack();
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'minimap';
+    this.wrapper.dataset.layoutZone = 'bottomLeft';
     this.wrapper.setAttribute('role', 'img');
     this.wrapper.setAttribute(
       'aria-label',

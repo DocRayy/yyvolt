@@ -128,7 +128,8 @@ export const FURNITURE_LAYOUT = Object.freeze({
     height: 1.12,
   },
   chair: {
-    position: [4.35, 0, -2],
+    // Tucked under the desk and clear of the widened right-hand straight.
+    position: [4.55, 0, -2],
     rotationY: Math.PI / 2,
   },
   wardrobe: {
@@ -144,40 +145,44 @@ export const FURNITURE_LAYOUT = Object.freeze({
     height: 2.35,
   },
   toyBox: {
-    position: [-2.5, 0, 3.5],
+    // Front-right corner, outside the widened track and away from the door.
+    position: [4.85, 0, 4.3],
     width: 2,
     depth: 1.15,
     height: 0.78,
   },
 });
 
-/** Loose floor props: obstacles, colour, and toy-scale storytelling. */
+/** Loose floor props: colour and toy-scale storytelling, kept off the ribbon. */
 export const PROPS_LAYOUT = Object.freeze({
   lego: [
     {
-      position: [-1.4, 0, 2.5],
+      // Infield, between the start straight and the rug.
+      position: [-1.9, 0, 1.15],
       rotationY: 0.35,
       color: 'yellow',
       studs: [3, 2],
     },
     {
-      position: [0.1, 0, 3.15],
+      // Front strip, beside the ramp's outer book stack.
+      position: [1.3, 0, 4.35],
       rotationY: -0.2,
       color: 'navy',
       studs: [2, 2],
     },
     {
-      position: [4.95, 0, 2.9],
+      // Right-hand strip, between the track and the wall.
+      position: [5.45, 0, 3.4],
       rotationY: 0.9,
       color: 'red',
       studs: [2, 3],
     },
   ],
-  ball: { position: [5.35, 0.3, 3.45], radius: 0.3 },
-  books: { position: [3.0, 0, 2.2], rotationY: -0.15 },
-  teddy: { position: [-1, 0, 3], rotationY: 0.35 },
+  ball: { position: [5.5, 0.3, 1.1], radius: 0.3 },
+  books: { position: [5.2, 0, 2.85], rotationY: -0.15 },
+  teddy: { position: [-0.7, 0, 1.7], rotationY: 0.35 },
   crayons: { position: [1.5, 0, 0.4], rotationY: 0.4 },
-  rocket: { position: [5.45, 0, 1.8], rotationY: -0.3 },
+  rocket: { position: [5.5, 0, 2], rotationY: -0.3 },
 });
 
 /** Shared material tints for the room and furniture. */

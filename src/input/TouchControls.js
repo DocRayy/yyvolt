@@ -4,70 +4,14 @@
  * The controller owns no car state. It turns multi-touch pointer presses into
  * one small input snapshot that InputManager can merge with the keyboard,
  * optionally adds analog tilt steering, and routes short haptic pulses back to
- * the player. Buttons are ordinary DOM elements, so the browser handles focus,
- * safe areas, and pointer capture; the canvas never sees these gestures.
+ * the player. Each pedal is a real button with its own pointer capture, so a
+ * gas thumb and a steering thumb never interfere.
  */
 import { TOUCH } from '../config/touch.config.js';
 import { GAME_STATES } from '../core/GameState.js';
 import { clamp } from '../utils/math.js';
-
-const TOUCH_MARKUP = `
-  <div class="touch-controls__steer" role="group" aria-label="Steering">
-    <button
-      class="touch-pad touch-pad--steer"
-      type="button"
-      data-touch-action="drive.steer-left"
-      aria-label="Steer left"
-      aria-pressed="false"
-    >
-      Left
-    </button>
-    <button
-      class="touch-pad touch-pad--steer"
-      type="button"
-      data-touch-action="drive.steer-right"
-      aria-label="Steer right"
-      aria-pressed="false"
-    >
-      Right
-    </button>
-  </div>
-
-  <div class="touch-controls__drive" role="group" aria-label="Pedals and boost">
-    <button
-      class="touch-pad touch-pad--brake"
-      type="button"
-      data-touch-action="drive.brake"
-      aria-pressed="false"
-    >
-      Brake
-    </button>
-    <button
-      class="touch-pad touch-pad--drift"
-      type="button"
-      data-touch-action="drive.handbrake"
-      aria-pressed="false"
-    >
-      Drift
-    </button>
-    <button
-      class="touch-pad touch-pad--boost"
-      type="button"
-      data-touch-action="drive.boost"
-      aria-pressed="false"
-    >
-      Boost
-    </button>
-    <button
-      class="touch-pad touch-pad--gas"
-      type="button"
-      data-touch-action="drive.accelerate"
-      aria-pressed="false"
-    >
-      Gas
-    </button>
-  </div>
-`;
+import { TouchActionButton } from './TouchActionButton.js';
+import { TOUCH_MARKUP } from './touchMarkup.js';
 
 export class TouchControls {
   constructor({ bus } = {}) {
@@ -75,8 +19,8 @@ export class TouchControls {
 
     this.bus = bus;
     this.visible = false;
-    this.pointers = new Map();
     this.pressed = new Set();
+    this.controls = [];
 
     this.tiltEnabled = false;
     this.tiltPending = false;
@@ -102,17 +46,22 @@ export class TouchControls {
     this.root.innerHTML = TOUCH_MARKUP;
     this.buttons = [...this.root.querySelectorAll('[data-touch-action]')];
 
-    this.handlePointerDown = this.handlePointerDown.bind(this);
-    this.handlePointerEnd = this.handlePointerEnd.bind(this);
+    this.handleActionChange = this.handleActionChange.bind(this);
     this.handleContextMenu = this.handleContextMenu.bind(this);
     this.handleOrientation = this.handleOrientation.bind(this);
     this.handleCollision = this.handleCollision.bind(this);
     this.handleBoost = this.handleBoost.bind(this);
 
-    this.root.addEventListener('pointerdown', this.handlePointerDown);
+    this.controls = this.buttons.map(
+      (element) =>
+        new TouchActionButton({
+          element,
+          action: element.dataset.touchAction,
+          onChange: this.handleActionChange,
+        }),
+    );
+
     this.root.addEventListener('contextmenu', this.handleContextMenu);
-    window.addEventListener('pointerup', this.handlePointerEnd);
-    window.addEventListener('pointercancel', this.handlePointerEnd);
     document.body.append(this.root);
 
     this.unsubscribers = [
@@ -132,6 +81,11 @@ export class TouchControls {
     ];
 
     this.setVisible(false);
+  }
+
+  handleActionChange(action, active) {
+    if (active) this.pressed.add(action);
+    else this.pressed.delete(action);
   }
 
   /** Analog steering target for InputManager. Pads win over tilt. */
@@ -179,50 +133,15 @@ export class TouchControls {
   }
 
   reset() {
-    this.pointers.clear();
+    for (const control of this.controls) control.release();
     this.pressed.clear();
-    this.syncButtons();
     this.tiltCenter = null;
     this.tiltSteer = 0;
     this.tiltTarget = 0;
   }
 
-  handlePointerDown(event) {
-    if (!this.visible || !(event.target instanceof Element)) return;
-
-    const button = event.target.closest('[data-touch-action]');
-    if (!button || !this.root.contains(button)) return;
-
-    event.preventDefault();
-    this.pointers.set(event.pointerId, button.dataset.touchAction);
-    this.syncButtons();
-    try {
-      button.setPointerCapture(event.pointerId);
-    } catch {
-      // Older browsers can refuse capture after a simultaneous gesture. The
-      // window-level pointerup listener still clears the held action.
-    }
-  }
-
-  handlePointerEnd(event) {
-    if (!this.pointers.delete(event.pointerId)) return;
-    event.preventDefault();
-    this.syncButtons();
-  }
-
   handleContextMenu(event) {
     event.preventDefault();
-  }
-
-  syncButtons() {
-    this.pressed.clear();
-    for (const action of this.pointers.values()) this.pressed.add(action);
-
-    for (const button of this.buttons) {
-      const active = this.pressed.has(button.dataset.touchAction);
-      button.classList.toggle('is-pressed', active);
-      button.setAttribute('aria-pressed', String(active));
-    }
   }
 
   async toggleTilt() {
@@ -419,10 +338,9 @@ export class TouchControls {
     window.clearTimeout(this.tiltTimer);
     this.tiltTimer = 0;
 
-    this.root.removeEventListener('pointerdown', this.handlePointerDown);
+    for (const control of this.controls) control.dispose();
+    this.controls.length = 0;
     this.root.removeEventListener('contextmenu', this.handleContextMenu);
-    window.removeEventListener('pointerup', this.handlePointerEnd);
-    window.removeEventListener('pointercancel', this.handlePointerEnd);
 
     if (this.vibrationSupported) {
       try {

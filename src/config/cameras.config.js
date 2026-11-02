@@ -135,7 +135,7 @@ export const CAMERA_MODES = Object.freeze([
       }),
       Object.freeze({
         id: 'toybox',
-        position: Object.freeze([-1.25, 1.05, 3.3]),
+        position: Object.freeze([4.15, 1.45, 4.4]),
       }),
       Object.freeze({
         id: 'door',

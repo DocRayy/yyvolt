@@ -11,6 +11,7 @@ import {
   buildControlGroupsMarkup,
   buildTouchHelpMarkup,
 } from './ControlList.js';
+import { SettingsScreen } from '../ui/SettingsScreen.js';
 
 const BOLT = `
   <svg class="menu__bolt" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -41,6 +42,15 @@ const MENU_MARKUP = `
         <button class="menu-button menu-button--secondary" type="button" data-controls>
           Controls
         </button>
+        <button class="menu-button menu-button--secondary" type="button" data-settings>
+          Settings
+        </button>
+        <button class="menu-button menu-button--secondary" type="button" data-garage>
+          Garage
+        </button>
+        <button class="menu-button menu-button--secondary" type="button" data-track-select>
+          Tracks
+        </button>
       </div>
 
       <p class="menu__note">Enter starts the race.</p>
@@ -59,7 +69,7 @@ const MENU_MARKUP = `
 `;
 
 export class Menu {
-  constructor({ bus, lapTimer, touch = false } = {}) {
+  constructor({ bus, lapTimer, touch = false, settingsScreen = null, garageScreen = null } = {}) {
     if (!bus) throw new Error('Menu needs an EventBus.');
 
     this.bus = bus;
@@ -67,6 +77,12 @@ export class Menu {
     this.visible = false;
     this.controlsOpen = false;
     this.isTouch = touch;
+    this.settingsScreen = settingsScreen;
+    this.settingsClick = () => this.settingsScreen?.show();
+    this.garageScreen = garageScreen;
+    this.garageClick = () => this.garageScreen?.show();
+    this.trackSelectScreen = trackSelectScreen;
+    this.trackSelectClick = () => this.trackSelectScreen?.show();
 
     this.root = document.createElement('div');
     this.root.className = 'menu';
@@ -79,7 +95,10 @@ export class Menu {
     this.controls = this.root.querySelector('[data-view="controls"]');
     this.startButton = this.root.querySelector('[data-start]');
     this.controlsButton = this.root.querySelector('[data-controls]');
+    this.settingsButton = this.root.querySelector('[data-settings]');
     this.backButton = this.root.querySelector('[data-back]');
+    this.garageButton = this.root.querySelector('[data-garage]');
+    this.trackSelectButton = this.root.querySelector('[data-track-select]');
     this.bestValue = this.root.querySelector('[data-best]');
     this.groupsElement = this.root.querySelector('[data-groups]');
     this.groupsElement.innerHTML = this.isTouch
@@ -93,6 +112,9 @@ export class Menu {
 
     this.startButton.addEventListener('click', this.startClick);
     this.controlsButton.addEventListener('click', this.controlsClick);
+    this.settingsButton.addEventListener('click', this.settingsClick);
+    this.garageButton.addEventListener('click', this.garageClick);
+    this.trackSelectButton.addEventListener('click', this.trackSelectClick);
     this.backButton.addEventListener('click', this.backClick);
     window.addEventListener('keydown', this.handleKeyDown);
 
@@ -159,6 +181,11 @@ export class Menu {
   onKeyDown(event) {
     if (!this.visible) return;
 
+    if (event.code === 'Escape' && this.settingsScreen?.visible) {
+      event.preventDefault();
+      this.settingsScreen.hide();
+      return;
+    }
     if (event.code === 'Escape' && this.controlsOpen) {
       event.preventDefault();
       this.bus.emit('ui:click');

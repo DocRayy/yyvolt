@@ -15,8 +15,9 @@ import { CAR } from '../config/car.config.js';
 import { clamp, damp } from '../utils/math.js';
 
 export class CarPhysics {
-  constructor({ bus } = {}) {
+  constructor({ bus, physics = CAR.physics } = {}) {
     this.bus = bus ?? null;
+    this.physics = physics;
 
     this.position = new Vector3();
     this.previousPosition = new Vector3();
@@ -81,12 +82,11 @@ export class CarPhysics {
    *   getHandbrake: () => number,
    *   isBoostDown: () => boolean,
    * }} input Merged keyboard and touch values from InputManager.
-   * @param {{onTrack: boolean, onRug: boolean, height: number}} surface
    */
-  update(dt, input, surface) {
+  update(dt, input) {
     if (!(dt > 0)) return;
 
-    const p = CAR.physics;
+    const p = this.physics;
     this.previousPosition.copy(this.position);
     this.previousHeading = this.heading;
     this.previousSteering = this.steering;
@@ -123,13 +123,11 @@ export class CarPhysics {
       this.boostEnergy = Math.min(1, this.boostEnergy + p.boostRefill * dt);
     }
 
-    let grip = p.gripTrack;
-    let rollingDrag = p.rollingDrag;
-    if (surface && !surface.onTrack) {
-      grip = surface.onRug ? p.gripRug : p.gripFloor;
-      rollingDrag += surface.onRug ? p.rugDrag : p.offTrackDrag;
-    }
+    // The car is always on the toy track, so grip and drag are single values.
+    let grip = p.grip;
     if (this.handbrake > 0.01) grip *= p.handbrakeGripScale;
+
+    const rollingDrag = p.rollingDrag;
 
     let forward = this.speed;
     let lateral = this.lateralSpeed;

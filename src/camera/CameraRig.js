@@ -69,6 +69,18 @@ export class CameraRig {
     this.carState = new CameraCarState(car);
     this.shake = new CameraShake(CAMERA_SHAKE);
 
+    // Shadow camera: follows the car with a small frustum for tight shadow
+    // mapping. The key light's shadow camera is a child of the car.
+    this.shadowCamera = new PerspectiveCamera(
+      CAMERA_BY_ID.chase.fov,
+      1,
+      0.03,
+      30,
+    );
+    this.shadowCamera.name = 'Shadow camera';
+    this.shadowCamera.position.set(0, 0.3, 0);
+    this.shadowCamera.target = new Vector3(0, 0, 0);
+
     this.fromPose = createPose();
     this.targetPose = createPose();
     this.outputPose = createPose();
@@ -236,6 +248,12 @@ export class CameraRig {
     this.car.group.updateMatrixWorld(true);
     this.carState.update();
 
+    // Shadow camera follows the car with a small frustum.
+    const carPos = this.car.group.position;
+    this.shadowCamera.position.set(carPos.x, 0.3 + carPos.y, carPos.z + 0.3);
+    this.shadowCamera.target.copy(carPos);
+    this.shadowCamera.updateProjectionMatrix();
+
     const mode = this.targetMode ?? this.activeMode;
     if (!mode) return;
 
@@ -359,5 +377,6 @@ export class CameraRig {
     this.unsubscribeAction = null;
     this.unsubscribeCollision = null;
     this.unsubscribeCycle = null;
+    this.shadowCamera = null;
   }
 }

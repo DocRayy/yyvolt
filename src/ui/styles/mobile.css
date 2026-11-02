@@ -81,7 +81,7 @@ body.is-rotate-blocked .speed-lines {
   :root {
     --hud-edge: clamp(10px, 2vmin, 18px);
     --hud-gap: clamp(8px, 1.4vmin, 14px);
-    --timing-width: clamp(190px, 52vw, 240px);
+    --timing-width: clamp(160px, 36vw, 210px);
     --minimap-size: clamp(90px, 24vw, 110px);
     --speed-plate-width: clamp(150px, 42vw, 220px);
     --text-speed: clamp(46px, 13vmin, 78px);
@@ -246,18 +246,33 @@ body.is-rotate-blocked .speed-lines {
 }
 
 @media (pointer: coarse) {
+  /* Touch layout tokens are shared by the controls and the minimap, which is
+     anchored above the steering thumb instead of in a separate corner. */
+  :root {
+    --touch-gap: 16px;
+    --touch-steer: clamp(72px, 17vmin, 96px);
+    --pedal-gas-w: clamp(72px, 13vmin, 92px);
+    --pedal-gas-h: clamp(120px, 31vmin, 164px);
+    --pedal-brake-w: clamp(72px, 13vmin, 92px);
+    --pedal-brake-h: clamp(88px, 23vmin, 120px);
+    --pedal-boost-w: clamp(72px, 13vmin, 92px);
+    --pedal-boost-h: clamp(56px, 15vmin, 78px);
+    --pedal-small: 56px;
+    --speed-plate-width: clamp(140px, 22vw, 210px);
+  }
+
   /* The desktop keyboard map is replaced by a touch-only Controls button. */
   .controls-panel:not(.controls-panel--touch) {
     display: none;
   }
 
-  /* Pause, camera, and day/night move out of the steering thumbs and sit in one
-     row at the top center. The minimap keeps the top-right corner. */
+  /* Pause, camera, and day/night sit in one row at the top right, away from the
+     timing tower and above the pedal cluster. */
   .hud__buttons {
-    grid-column: 2;
+    grid-column: 3;
     grid-row: 1;
     align-self: start;
-    justify-self: center;
+    justify-self: end;
     align-items: center;
     flex-direction: row;
   }
@@ -266,9 +281,8 @@ body.is-rotate-blocked .speed-lines {
     display: flex;
   }
 
-  /* Center the speed plate in the open space between the two thumb clusters,
-     not inside the narrower HUD centre column. On a 640 px landscape phone the
-     tower and minimap push that column far enough right to touch the pedals. */
+  /* Center the speed plate in the open lane between the steering thumb and the
+     pedal cluster. The touch width token keeps it out of both. */
   .hud__speed {
     grid-column: 1 / -1;
     justify-self: center;
@@ -282,11 +296,16 @@ body.is-rotate-blocked .speed-lines {
     top: calc(var(--safe-top) + clamp(108px, 24vh, 148px));
   }
 
+  /* Bottom-left is split vertically: the minimap sits directly above the
+     steering thumb, so bottomLeft and leftZone never share pixels. */
   .minimap {
-    grid-column: 3;
-    grid-row: 1;
-    justify-self: end;
-    align-self: start;
+    position: fixed;
+    top: auto;
+    right: auto;
+    bottom: calc(var(--safe-bottom) + 16px + var(--touch-steer) + 8px);
+    left: calc(var(--safe-left) + 16px);
+    justify-self: auto;
+    align-self: auto;
   }
 
   /* Touch players get the same large, single-column actions without keyboard
@@ -320,12 +339,6 @@ body.is-rotate-blocked .speed-lines {
   /* ---- Steering and pedals --------------------------------------------- */
 
   .touch-controls {
-    --touch-gap: 12px;
-    --touch-steer: clamp(78px, 18vmin, 104px);
-    --touch-gas: clamp(84px, 20vmin, 108px);
-    --touch-brake: clamp(60px, 15vmin, 72px);
-    --touch-small: 56px;
-
     position: fixed;
     inset: 0;
     z-index: var(--z-touch);
@@ -346,23 +359,26 @@ body.is-rotate-blocked .speed-lines {
 
   .touch-controls__steer {
     position: absolute;
-    left: calc(var(--safe-left) + var(--hud-edge));
-    bottom: calc(var(--safe-bottom) + var(--hud-edge));
+    left: calc(var(--safe-left) + 16px);
+    bottom: calc(var(--safe-bottom) + 16px);
     display: flex;
     align-items: flex-end;
     gap: var(--touch-gap);
   }
 
+  /* Gas is the tall right pedal. Brake sits to its left, Boost above the brake,
+     and Drift above the cluster on the right edge. The 16 px grid gap is the
+     same token the inspector checks. */
   .touch-controls__drive {
     position: absolute;
-    right: calc(var(--safe-right) + var(--hud-edge));
-    bottom: calc(var(--safe-bottom) + var(--hud-edge));
+    right: calc(var(--safe-right) + 16px);
+    bottom: calc(var(--safe-bottom) + 16px);
     display: grid;
-    grid-template-columns: var(--touch-brake) var(--touch-gas);
-    grid-template-rows: var(--touch-brake) var(--touch-gas);
+    grid-template-columns: var(--pedal-brake-w) var(--pedal-gas-w);
+    grid-template-rows: var(--pedal-boost-h) var(--pedal-gas-h);
     grid-template-areas:
-      'brake drift'
-      'boost gas';
+      'drift boost'
+      'brake gas';
     gap: var(--touch-gap);
   }
 
@@ -403,55 +419,155 @@ body.is-rotate-blocked .speed-lines {
     height: var(--touch-steer);
   }
 
-  .touch-pad--brake,
-  .touch-pad--drift,
-  .touch-pad--boost,
-  .touch-pad--gas {
-    align-self: end;
+  /* A pedal is one inline-SVG plate. The plate stays metal, the four ridges
+     carry the pedal's accent, and a press tilts the whole shape around its
+     bottom edge without scaling or glowing. */
+  .touch-pedal {
+    position: relative;
+    display: block;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    color: var(--color-paper);
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: none;
+    transform-origin: bottom center;
+    transition: transform var(--dur-fast) ease;
   }
 
-  .touch-pad--brake {
-    grid-area: brake;
-    justify-self: start;
-    width: var(--touch-brake);
-    height: var(--touch-brake);
+  .touch-pedal.is-pressed {
+    transform: perspective(240px) rotateX(8deg);
   }
 
-  .touch-pad--drift {
-    grid-area: drift;
-    justify-self: end;
-    width: var(--touch-small);
-    height: var(--touch-small);
+  .touch-pedal:focus-visible {
+    outline: 2px solid var(--color-yellow);
+    outline-offset: 2px;
   }
 
-  .touch-pad--boost {
-    grid-area: boost;
-    justify-self: start;
-    width: var(--touch-small);
-    height: var(--touch-small);
-  }
+  .touch-pedal--gas {
+    --pedal-accent: var(--color-paper);
 
-  .touch-pad--gas {
     grid-area: gas;
+    width: var(--pedal-gas-w);
+    height: var(--pedal-gas-h);
+  }
+
+  .touch-pedal--brake {
+    --pedal-accent: var(--color-red);
+
+    grid-area: brake;
+    align-self: end;
+    width: var(--pedal-brake-w);
+    height: var(--pedal-brake-h);
+  }
+
+  .touch-pedal--boost {
+    --pedal-accent: var(--color-yellow);
+
+    grid-area: boost;
+    width: var(--pedal-boost-w);
+    height: var(--pedal-boost-h);
+  }
+
+  .pedal__art {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .pedal__plate {
+    fill: var(--color-steel);
+    opacity: 0.72;
+  }
+
+  .pedal__face {
+    fill: var(--color-navy);
+  }
+
+  .pedal__ridge {
+    fill: var(--pedal-accent);
+    transition: fill var(--dur-fast) ease;
+  }
+
+  .touch-pedal.is-pressed .pedal__ridge {
+    fill: var(--color-yellow);
+  }
+
+  .pedal__label {
+    position: absolute;
+    right: 0;
+    bottom: 8%;
+    left: 0;
+    color: var(--color-paper);
+    font-family: var(--font-body);
+    font-size: clamp(12px, 1.8vmin, 15px);
+    font-weight: 500;
+    line-height: 1;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .touch-drift {
+    grid-area: drift;
+    align-self: end;
     justify-self: end;
-    width: var(--touch-gas);
-    height: var(--touch-gas);
-    font-size: clamp(17px, 2.2vmin, 20px);
+    width: var(--pedal-small);
+    height: var(--pedal-small);
+    padding: 0;
+    background: var(--panel-overlay);
+    border: 1px solid var(--border);
+    color: var(--color-paper);
+    font-family: var(--font-body);
+    font-size: clamp(13px, 1.9vmin, 15px);
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: none;
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - 12px),
+      calc(100% - 12px) 100%,
+      0 100%
+    );
+    transition:
+      background-color var(--dur-fast) ease,
+      border-color var(--dur-fast) ease,
+      color var(--dur-fast) ease;
+  }
+
+  .touch-drift.is-pressed {
+    background: var(--color-yellow);
+    border-color: var(--color-yellow);
+    color: var(--color-navy);
+  }
+
+  .touch-drift:focus-visible {
+    outline: 2px solid var(--color-yellow);
+    outline-offset: 2px;
   }
 
   /* ---- In-race touch Controls button ----------------------------------- */
 
   .controls-panel--touch {
-    top: calc(
-      var(--safe-top) + var(--hud-edge) + var(--minimap-size) + var(--hud-gap)
+    top: calc(var(--safe-top) + var(--hud-edge));
+    right: auto;
+    left: calc(
+      var(--safe-left) + var(--hud-edge) + var(--timing-width) + var(--hud-gap)
     );
-    right: calc(var(--safe-right) + var(--hud-edge));
     width: auto;
     max-height: calc(
       100dvh - var(--safe-top) - var(--safe-bottom) - var(--hud-edge) -
         var(--hud-edge)
     );
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 6px;
     background: transparent;
     border: 0;
@@ -486,12 +602,14 @@ body.is-rotate-blocked .speed-lines {
       var(--safe-left) + var(--hud-edge) + var(--timing-width) + var(--hud-gap)
     );
     width: min(
-      286px,
+      300px,
       calc(
         100vw - var(--safe-left) - var(--safe-right) - var(--hud-edge) -
-          var(--hud-edge) - var(--timing-width) - var(--minimap-size) -
-          var(--hud-gap) - var(--hud-gap)
+          var(--hud-edge) - var(--timing-width) - var(--hud-gap)
       )
+    );
+    max-height: calc(
+      100dvh - var(--safe-top) - var(--safe-bottom) - 140px
     );
     padding: 10px 12px 12px;
     background: var(--panel-overlay);
@@ -628,4 +746,23 @@ body.is-rotate-blocked .speed-lines {
   .touch-setting__state {
     font-size: var(--text-sm);
   }
+}
+
+/* ---- Layout inspector (?debug=layout) ---------------------------------- */
+
+body.is-layout-debug .hud,
+body.is-layout-debug .touch-controls,
+body.is-layout-debug .controls-panel--touch {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+body.is-layout-debug [data-layout-zone] {
+  outline: 1px dashed var(--color-yellow);
+  outline-offset: 2px;
+}
+
+body.is-layout-debug [data-touch-action] {
+  outline: 1px solid var(--color-orange);
+  outline-offset: -1px;
 }

@@ -200,6 +200,11 @@ export class TrackBuilder {
       color: 0xffffff,
       roughness: 0.52,
       metalness: 0.02,
+      // Kerbs sit on the ribbon edge at the same height as the surface, so a
+      // small depth bias is what keeps them from z-fighting at a distance.
+      polygonOffset: true,
+      polygonOffsetFactor: kerb.polygonOffset.factor,
+      polygonOffsetUnits: kerb.polygonOffset.units,
     });
     const kerbs = new InstancedMesh(geometry, material, count * 2);
     kerbs.castShadow = true;
@@ -213,13 +218,7 @@ export class TrackBuilder {
       const { position, tangent, side, up } = this.frame;
 
       // The ramp edges are carried by book stacks instead of kerbs.
-      if (
-        Math.abs(position.z - 2.2) < 1.0 &&
-        position.x > 2.5 &&
-        position.x < 3.5
-      ) {
-        continue;
-      }
+      if (this.trackPath.isOnRamp(u, TRACK.ramp.kerbMargin)) continue;
       this.tangentBack.copy(tangent).negate();
       this.quaternion.setFromRotationMatrix(
         this.matrix.makeBasis(side, up, this.tangentBack),
@@ -281,34 +280,68 @@ export class TrackBuilder {
   }
 
   /**
-   * Two short stacks flank the ramp so the bridge over the books reads from a
-   * normal chase camera. The third stack sits under the ribbon and is mostly
-   * hidden, but the side stacks give the jump a physical reason to exist.
+   * Two stacks of picture books flank the ramp so the raised section reads as
+   * a bridge the toy track climbs over. The stacks sit just outside the ribbon
+   * on both sides, which is also why the kerbs are skipped along this stretch.
    */
   buildRampBooks() {
-    const bookColors = MATERIALS.bookColors.slice(0, 3).map(
+    const ramp = TRACK.ramp;
+    const bookColors = MATERIALS.bookColors.slice(0, ramp.stackBooks).map(
       (hex) => new MeshStandardMaterial({ color: hex, roughness: 0.58 }),
     );
     const pageMaterial = new MeshStandardMaterial({
       color: MATERIALS.paper,
       roughness: 0.72,
     });
-    const bookGeometry = new RoundedBoxGeometry(0.5, 0.06, 0.36, 2, 0.01);
-    const pageGeometry = new BoxGeometry(0.46, 0.045, 0.018);
+    // Local +z runs along the track, so the book's long edge follows the ramp.
+    const bookGeometry = new RoundedBoxGeometry(
+      ramp.bookDepth,
+      ramp.bookHeight,
+      ramp.bookWidth,
+      2,
+      0.01,
+    );
+    const pageGeometry = new BoxGeometry(
+      ramp.bookDepth - 0.04,
+      ramp.bookHeight - 0.015,
+      0.018,
+    );
 
-    for (const z of [1.5, 2.9]) {
+    const frame = this.trackPath.getFrameAt(this.trackPath.rampCenterU, this.frame);
+    const { position, tangent, side, up } = frame;
+    const rampGroup = new Group();
+    rampGroup.name = 'Ramp books';
+    rampGroup.position.set(position.x, 0, position.z);
+    this.tangentBack.copy(tangent).negate();
+    rampGroup.quaternion.setFromRotationMatrix(
+      this.matrix.makeBasis(side, up, this.tangentBack),
+    );
+
+    for (const sign of [-1, 1]) {
       const stack = new Group();
-      stack.position.set(3.0, 0, z);
-      for (let i = 0; i < 3; i += 1) {
+      stack.position.set(sign * ramp.stackLateral, 0, 0);
+
+      for (let i = 0; i < ramp.stackBooks; i += 1) {
         const book = new Group();
-        book.position.y = 0.03 + i * 0.072;
-        book.rotation.y = (i - 1) * 0.08;
+        book.position.y =
+          ramp.bookHeight / 2 + i * (ramp.bookHeight + ramp.bookGap);
+        book.rotation.y = (i - 1) * 0.06;
         addMesh(book, bookGeometry, bookColors[i], 0, 0, 0);
-        addBox(book, 0.46, 0.045, 0.018, pageMaterial, 0, 0, 0.183);
+        addMesh(
+          book,
+          pageGeometry,
+          pageMaterial,
+          0,
+          0,
+          ramp.bookWidth / 2 - 0.009,
+        );
         stack.add(book);
       }
-      this.group.add(stack);
+
+      rampGroup.add(stack);
     }
+
+    this.group.add(rampGroup);
   }
 
   buildStartArch() {

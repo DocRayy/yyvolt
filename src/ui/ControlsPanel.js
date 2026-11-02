@@ -40,6 +40,7 @@ const PANEL_MARKUP = `
 const TOUCH_PANEL_MARKUP = `
   <aside
     class="controls-panel controls-panel--touch"
+    data-layout-zone="controlsPanel"
     aria-label="Touch controls"
     aria-hidden="true"
   >

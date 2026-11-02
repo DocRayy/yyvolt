@@ -24,7 +24,11 @@ const MOON_ICON = `
 `;
 
 const HUD_MARKUP = `
-  <section class="hud__timing" aria-label="Lap timing">
+  <section
+    class="hud__timing"
+    data-layout-zone="topLeft"
+    aria-label="Lap timing"
+  >
     <div class="timing">
       <div class="timing__row timing__row--lap">
         <span class="timing__label">Lap</span>
@@ -49,7 +53,7 @@ const HUD_MARKUP = `
     </div>
   </section>
 
-  <div class="hud__speed">
+  <div class="hud__speed" data-layout-zone="bottomCenter">
     <div class="speed" aria-label="Speed and boost">
       <div class="speed__readout">
         <span class="speed__value" data-speed>0</span>
@@ -68,7 +72,12 @@ const HUD_MARKUP = `
     </div>
   </div>
 
-  <div class="hud__buttons">
+  <div class="hud__fps" data-fps-row>
+    <span class="hud__fps__label">FPS</span>
+    <span class="hud__fps__value" data-fps>60</span>
+  </div>
+
+  <div class="hud__buttons" data-layout-zone="topBar">
     <button
       class="hud-button hud-button--pause"
       type="button"
@@ -133,6 +142,13 @@ export class HUD {
     this.dayNightValue = this.root.querySelector('[data-daynight]');
     this.dayNightIcon = this.root.querySelector('[data-daynight-icon]');
 
+    this.fpsRow = this.root.querySelector('[data-fps-row]');
+    this.speedValueElement = this.root.querySelector('[data-speed]');
+    this.showFps = false;
+    this.frameTimes = new Float64Array(60);
+    this.frameIndex = 0;
+    this.frameCount = 0;
+    this.lastFrame = performance.now();
     this.minimap = new Minimap({ trackPath, car });
     this.root.append(this.minimap.wrapper);
 
@@ -168,6 +184,17 @@ export class HUD {
     this.unsubscribeDayNight = bus.on('daynight:changed', ({ mode }) => {
       this.setDayNight(mode);
     });
+  }
+
+  setFpsEnabled(enabled) {
+    if (enabled === this.showFps) return;
+    this.showFps = Boolean(enabled);
+    this.fpsRow.hidden = !enabled;
+    if (enabled) {
+      this.lastFrame = performance.now();
+      this.frameIndex = 0;
+      this.frameCount = 0;
+    }
   }
 
   setVisible(visible) {
@@ -258,6 +285,31 @@ export class HUD {
 
   setText(element, value) {
     if (element.textContent !== value) element.textContent = value;
+  }
+
+  updateFps() {
+    this.fillFpsBuffer();
+    if (!this.showFps) return;
+
+    const total = this.frameCount;
+    let sum = 0;
+    for (let i = 0; i < total; i += 1) sum += this.frameTimes[i];
+    const fps = total / sum;
+    const text = String(Math.round(fps));
+    if (this.fpsValue.textContent !== text) {
+      this.fpsValue.textContent = text;
+    }
+  }
+
+  fillFpsBuffer() {
+    const now = performance.now();
+    const frameTime = now - this.lastFrame;
+    this.lastFrame = now;
+    if (frameTime > 0) {
+      this.frameTimes[this.frameIndex] = frameTime;
+      this.frameIndex = (this.frameIndex + 1) % this.frameTimes.length;
+      this.frameCount = Math.min(this.frameCount + 1, this.frameTimes.length);
+    }
   }
 
   dispose() {

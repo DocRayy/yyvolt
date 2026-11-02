@@ -1,0 +1,246 @@
+/**
+ * src/ui/styles/garage.css
+ *
+ * Garage screen panel. Follows the global hard rules: solid navy panel,
+ * chamfered (angled) corner cut with clip-path, 2px radius elsewhere,
+ * sentence case, no gradients or glow, touch targets at least 44 px.
+ */
+
+.garage {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-menu);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-navy);
+  color: var(--color-paper);
+}
+
+.garage.is-visible {
+  display: flex;
+}
+
+.garage__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--hud-edge);
+  background: var(--color-navy);
+}
+
+.garage__title {
+  font: var(--font-display);
+  font-size: var(--text-lg);
+  margin: 0;
+}
+
+.garage__back {
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-steel);
+  background: none;
+  border: 2px solid var(--color-steel);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.garage__back:focus-visible {
+  outline: 3px solid var(--color-yellow);
+  outline-offset: 2px;
+}
+
+.garage__body {
+  display: flex;
+  flex: 1;
+  gap: var(--hud-gap);
+  padding: 0 var(--hud-edge) var(--hud-edge);
+  align-items: flex-start;
+}
+
+/* Landscape phone: preview on the left, controls on the right. */
+.garage__preview {
+  flex: 0 0 40%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--hud-gap);
+}
+
+.garage__preview-label {
+  font: var(--font-body);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-steel);
+  text-transform: uppercase;
+}
+
+.garage__turntable {
+  width: clamp(140px, 20vmin, 240px);
+  height: clamp(140px, 20vmin, 240px);
+  border-radius: var(--radius);
+  background: var(--color-steel);
+  position: relative;
+  overflow: hidden;
+}
+
+.garage__note {
+  font: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-steel);
+  text-align: center;
+}
+
+.garage__controls {
+  flex: 1 1 60%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hud-gap);
+  min-width: 320px;
+  max-width: 480px;
+}
+
+.garage__tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.garage__tab {
+  font: var(--font-body);
+  font-size: var(--text-md);
+  color: var(--color-steel);
+  background: none;
+  border: 2px solid var(--color-steel);
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  cursor: pointer;
+  min-height: 48px;
+  min-width: 48px;
+  text-align: center;
+}
+
+.garage__tab.is-active {
+  color: var(--color-yellow);
+  border-color: var(--color-yellow);
+  background: var(--color-paper);
+}
+
+.garage__tab:focus-visible {
+  outline: 3px solid var(--color-yellow);
+  outline-offset: 2px;
+}
+
+.garage__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.garage__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.garage__stat-label {
+  font: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-steel);
+}
+
+.garage__bar {
+  height: 12px;
+  background: var(--color-steel);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid var(--color-steel);
+}
+
+.garage__bar-fill {
+  height: 100%;
+  background: var(--color-yellow);
+  border-radius: 2px;
+  transition: width 120ms;
+}
+
+.garage__stat-value {
+  font: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-steel);
+  text-align: right;
+}
+
+.garage__colors {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.garage__color-label {
+  font: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-steel);
+}
+
+.garage__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.garage__swatch {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
+  border: 2px solid var(--color-steel);
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.garage__swatch.is-active {
+  border-color: var(--color-paper);
+  outline: 3px solid var(--color-paper);
+  outline-offset: 2px;
+}
+
+.garage__swatch:focus-visible {
+  outline: 3px solid var(--color-yellow);
+  outline-offset: 2px;
+}
+
+.garage__select {
+  font: var(--font-body);
+  font-size: var(--text-md);
+  color: var(--color-paper);
+  background: var(--color-yellow);
+  border: none;
+  border-radius: var(--radius);
+  padding: 16px 28px;
+  cursor: pointer;
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.garage__select:focus-visible {
+  outline: 3px solid var(--color-yellow);
+  outline-offset: 2px;
+}
+
+@media (max-width: 820px) {
+  .garage__body {
+    flex-direction: column;
+  }
+
+  .garage__preview {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .garage__controls {
+    flex: 1;
+    max-width: 100%;
+  }
+}

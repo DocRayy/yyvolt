@@ -10,6 +10,8 @@ import './ui/styles/theme.css';
 import './ui/styles/hud.css';
 import './ui/styles/menu.css';
 import './ui/styles/mobile.css';
+import './ui/styles/garage.css';
+import './ui/styles/track-select.css';
 import { BOOT } from './config/constants.js';
 import { Game } from './core/Game.js';
 import { Toast } from './ui/Toast.js';

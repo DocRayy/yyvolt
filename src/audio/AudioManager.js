@@ -232,6 +232,37 @@ export class AudioManager {
     });
   }
 
+  /** Apply the persisted music preference to the live graph. */
+  setMusicOn(enabled) {
+    this.musicOn = Boolean(enabled);
+    this.music?.setEnabled(this.musicOn);
+    if (this.musicBus) {
+      const now = this.context.currentTime;
+      this.musicBus.gain.cancelScheduledValues(now);
+      this.musicBus.gain.setTargetAtTime(
+        this.musicOn ? AUDIO.musicVolume : 0,
+        now,
+        AUDIO.fade.music / 3,
+      );
+    }
+  }
+
+  /**
+   * Apply the persisted effects (sfx) volume to the live graph without
+   * mutating the frozen audio constant. The constant is only consulted when
+   * the graph is first built.
+   */
+  setSfxVolume(volume) {
+    const n = Number.isFinite(volume)
+      ? Math.min(1, Math.max(0, volume))
+      : 1;
+    if (this.sfxBus) {
+      const now = this.context.currentTime;
+      this.sfxBus.gain.cancelScheduledValues(now);
+      this.sfxBus.gain.setTargetAtTime(n, now, AUDIO.fade.mute / 3);
+    }
+  }
+
   /** Called once per render frame; continuous sources read the car here. */
   update() {
     if (!this.context || this.context.state !== 'running' || !this.engine) {
@@ -245,18 +276,15 @@ export class AudioManager {
         0,
         1.2,
       );
-      const onTrack = this.car.surfaceResult?.onTrack ?? false;
       const handbrake =
         physics.handbrake * clamp(Math.abs(physics.speed) / 2.5, 0, 1);
-      const skidAmount = onTrack
-        ? clamp(
-            (Math.abs(physics.lateralSpeed) - AUDIO.skid.threshold) /
-              AUDIO.skid.span +
-              handbrake * 0.8,
-            0,
-            1,
-          )
-        : 0;
+      const skidAmount = clamp(
+        (Math.abs(physics.lateralSpeed) - AUDIO.skid.threshold) /
+          AUDIO.skid.span +
+          handbrake * 0.8,
+        0,
+        1,
+      );
 
       this.engine.set(
         speedRatio,

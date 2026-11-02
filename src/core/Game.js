@@ -8,7 +8,11 @@
  */
 import {
   ACESFilmicToneMapping,
+  BufferAttribute,
+  BufferGeometry,
   Color,
+  Line,
+  LineBasicMaterial,
   PCFShadowMap,
   Scene,
   SRGBColorSpace,
@@ -17,6 +21,7 @@ import {
 } from 'three';
 import { AudioManager } from '../audio/AudioManager.js';
 import { CameraRig } from '../camera/CameraRig.js';
+import { GarageScreen } from '../ui/GarageScreen.js';
 import { CAR } from '../config/car.config.js';
 import { COLORS, ENVIRONMENT, RENDERER, TIMING } from '../config/constants.js';
 import { DAY_PRESET } from '../config/lighting.config.js';
@@ -33,6 +38,7 @@ import { batchStaticMeshes } from '../world/StaticBatcher.js';
 import { TextureFactory } from '../world/TextureFactory.js';
 import { Checkpoints } from '../track/Checkpoints.js';
 import { TrackBuilder } from '../track/TrackBuilder.js';
+import { TrackCollider } from '../track/TrackCollider.js';
 import { TrackLights } from '../track/TrackLights.js';
 import { TrackPath } from '../track/TrackPath.js';
 import { ToyF1Car } from '../car/ToyF1Car.js';
@@ -42,7 +48,10 @@ import { LapTimer } from '../gameplay/LapTimer.js';
 import { RaceDirector } from '../gameplay/RaceDirector.js';
 import { PostProcessing } from '../postfx/PostProcessing.js';
 import { ControlsPanel } from '../ui/ControlsPanel.js';
+import { Settings } from '../core/Settings.js';
+import { SettingsScreen } from '../ui/SettingsScreen.js';
 import { HUD } from '../ui/HUD.js';
+import { LayoutDebug } from '../ui/LayoutDebug.js';
 import { Menu } from '../ui/Menu.js';
 import { PauseScreen } from '../ui/PauseScreen.js';
 import { ResultScreen } from '../ui/ResultScreen.js';
@@ -52,6 +61,7 @@ import { DeviceProfile } from './DeviceProfile.js';
 import { EventBus } from './EventBus.js';
 import { FixedTimestep } from './FixedTimestep.js';
 import { GAME_STATES, GameState } from './GameState.js';
+import { EnvironmentManager } from '../environments/EnvironmentManager.js';
 import { QualityManager } from './QualityManager.js';
 
 function nextFrame() {
@@ -63,6 +73,7 @@ export class Game {
     if (!canvas) throw new Error('Game needs a canvas element.');
     this.canvas = canvas;
     this.bus = new EventBus();
+    this.settings = new Settings(this.bus);
     this.profile = new DeviceProfile();
     this.state = new GameState(this.bus);
     // Coarse-pointer devices get visible controls; a touch-enabled laptop with
@@ -83,6 +94,7 @@ export class Game {
     this.cameraRig = null;
     this.textures = null;
     this.environment = null;
+    this.environmentManager = null;
     this.room = null;
     this.furniture = null;
     this.props = null;
@@ -90,6 +102,7 @@ export class Game {
     this.trackPath = null;
     this.track = null;
     this.trackLights = null;
+    this.collider = null;
     this.checkpoints = null;
     this.car = null;
     this.effects = null;
@@ -103,6 +116,7 @@ export class Game {
     this.resultScreen = null;
     this.rotatePrompt = null;
     this.startLights = null;
+    this.layoutDebug = null;
     this.audio = null;
     this.unsubscribeSystem = null;
     this.carShadowTimer = 0;
@@ -144,7 +158,15 @@ export class Game {
     this.reportProgress(0.48);
     await nextFrame();
 
-    this.createEnvironment();
+    this.environmentManager = new EnvironmentManager({
+      bus: this.bus,
+      textures: this.textures,
+      renderer: this.renderer,
+      profile: this.profile,
+      scene: this.scene,
+    });
+
+    await this.environmentManager.load('bedroom');
     this.reportProgress(0.64);
     await nextFrame();
 
@@ -198,6 +220,8 @@ export class Game {
     });
     this.createUI();
 
+    this.applyLoadedSettings();
+
     this.state.set(GAME_STATES.MENU);
     this.bus.emit('game:ready');
 
@@ -216,13 +240,31 @@ export class Game {
       lapTimer: this.lapTimer,
       trackPath: this.trackPath,
     });
-    this.menu = new Menu({ bus: this.bus, lapTimer: this.lapTimer, touch });
+    this.menu = new Menu({
+      bus: this.bus,
+      lapTimer: this.lapTimer,
+      touch,
+      settingsScreen: this.settingsScreen,
+      garageScreen: this.garageScreen,
+    });
+    this.garageScreen = new GarageScreen({
+      bus: this.bus,
+      car: this.car,
+      scene: this.scene,
+      textures: this.textures,
+      touch,
+    });
+    this.trackSelectScreen = new TrackSelectScreen({ bus: this.bus, touch });
     this.controlsPanel = new ControlsPanel({
       bus: this.bus,
       cameraRig: this.cameraRig,
       touch,
     });
-    this.pauseScreen = new PauseScreen({ bus: this.bus, touch });
+    this.pauseScreen = new PauseScreen({
+      bus: this.bus,
+      touch,
+      settingsScreen: this.settingsScreen,
+    });
     this.resultScreen = new ResultScreen({
       bus: this.bus,
       lapTimer: this.lapTimer,
@@ -230,6 +272,31 @@ export class Game {
     });
     this.rotatePrompt = new RotatePrompt({ bus: this.bus });
     this.startLights = new StartLights({ bus: this.bus });
+    this.layoutDebug = new LayoutDebug();
+
+    this.unsubscribeSettings = null;
+  }
+
+  applyLoadedSettings() {
+    this.applySettings(this.settings.get());
+  }
+
+  applySettings(settings) {
+    // Music and effects volume are applied to the live audio graph.
+    if (typeof settings.music === 'boolean') {
+      this.audio?.setMusicOn(settings.music);
+    }
+    if (typeof settings.effectsVolume === 'number') {
+      this.audio?.setSfxVolume(settings.effectsVolume);
+    }
+    // Quality: "auto" is the monitor's own loop; explicit tiers are applied now.
+    if (settings.quality === 'auto') {
+      // Leave the monitor to choose its own tier.
+    } else {
+      this.quality?.setLevel?.(settings.quality);
+    }
+    // FPS readout visibility follows the setting.
+    this.hud?.setFpsEnabled(Boolean(settings.showFps));
   }
 
   dispose() {
@@ -253,6 +320,8 @@ export class Game {
 
     this.unsubscribeSystem?.();
     this.unsubscribeSystem = null;
+    this.layoutDebug?.dispose();
+    this.layoutDebug = null;
     this.menu?.dispose();
     this.menu = null;
     this.controlsPanel?.dispose();
@@ -292,8 +361,8 @@ export class Game {
     this.input.dispose();
 
     this.scene?.traverse((object) => {
-      if (!object.isMesh) return;
-      object.geometry?.dispose();
+      if (!object.geometry) return;
+      object.geometry.dispose();
       const materials = Array.isArray(object.material)
         ? object.material
         : [object.material];
@@ -357,10 +426,12 @@ export class Game {
     this.track = new TrackBuilder(this.trackPath, this.textures);
     this.trackLights = new TrackLights(this.trackPath);
     this.checkpoints = new Checkpoints(this.trackPath);
+    this.collider = new TrackCollider(this.trackPath, { bus: this.bus });
     this.car = new ToyF1Car({
       trackPath: this.trackPath,
       textures: this.textures,
       checkpoints: this.checkpoints,
+      collider: this.collider,
       bus: this.bus,
       maxDynamicLights: this.profile.maxDynamicLights,
     });
@@ -420,12 +491,28 @@ export class Game {
 
     this.scene = scene;
     this.camera = this.cameraRig.camera;
+    this.createColliderDebug();
   }
 
-  createEnvironment() {
-    this.environment = new EnvironmentMap(this.renderer);
-    this.scene.environment = this.environment.create();
-    this.scene.environmentIntensity = ENVIRONMENT.intensity;
+  /**
+   * `?debug=colliders` draws the invisible walls so a designer can see exactly
+   * where the car is allowed to go. Development tool only: no UI, no state.
+   */
+  createColliderDebug() {
+    const requested = new URLSearchParams(window.location.search).get('debug');
+    if (requested !== 'colliders' || !this.collider) return;
+
+    const { left, right } = this.collider.getDebugEdges();
+    const material = new LineBasicMaterial({ color: COLORS.liveryYellow });
+
+    for (const edge of [left, right]) {
+      const geometry = new BufferGeometry();
+      geometry.setAttribute('position', new BufferAttribute(edge, 3));
+      const line = new Line(geometry, material);
+      line.frustumCulled = false;
+      line.name = 'Collider wall';
+      this.scene.add(line);
+    }
   }
 
   createPostProcessing() {
@@ -658,6 +745,7 @@ export class Game {
     this.cameraRig?.update(delta);
     this.hud?.update(delta);
     this.startLights?.update(delta);
+    this.touch?.update?.(delta);
     this.quality?.update(delta);
 
     if (this.postProcessing) {

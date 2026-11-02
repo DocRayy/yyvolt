@@ -257,6 +257,37 @@ export class TextureFactory {
     return this.fromCanvas(canvas, { clamp: true });
   }
 
+  /** Pastel window texture with warm amber glow panes (used by casino and
+   * buildings). */
+  createPastelWindows() {
+    const size = 256;
+    const { canvas, ctx } = createCanvas(size, size);
+    // Wall: vertical pastel gradient.
+    const wall = ctx.createLinearGradient(0, 0, 0, size);
+    wall.addColorStop(0, '#d8e0f0');
+    wall.addColorStop(0.5, '#e8d8d8');
+    wall.addColorStop(1, '#d8e8e0');
+    ctx.fillStyle = wall;
+    ctx.fillRect(0, 0, size, size);
+    // Subtle wall texture.
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    for (let i = 0; i < 30; i += 1) {
+      const x = 16 + i * 42;
+      const y = 16 + (i % 5) * 40;
+      ctx.fillRect(x, y, 8, 8);
+    }
+    // Window grid overlay: warm amber glow.
+    ctx.fillStyle = 'rgba(255, 200, 100, 0.35)';
+    for (let row = 0; row < 4; row += 1) {
+      for (let col = 0; col < 6; col += 1) {
+        const wx = 20 + col * 38;
+        const wy = 20 + row * 46;
+        ctx.fillRect(wx, wy, 30, 30);
+      }
+    }
+    return this.fromCanvas(canvas, { clamp: true });
+  }
+
   /** Three diegetic posters, drawn in the YYVOLT broadcast language. */
   createPoster(id) {
     const { canvas, ctx } = createCanvas(768, 1024);

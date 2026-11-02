@@ -1,21 +1,19 @@
 /**
- * Fast lookup for the surface under the car.
+ * Fast lookup for the height of the track under the car.
  *
- * The car needs three answers every fixed step: is it on the toy track, how
- * high is that surface, and (for the ramp) what is the local slope? Re-sampling
- * the Catmull-Rom curve each step would allocate and waste time. Instead the
- * closed curve is baked once into a short polyline of segments, and the lookup
- * projects the car onto the nearest segment. Off-track the car drops to the rug
- * or the wooden floor, which Phase 7 will use for collisions.
+ * The car cannot leave the ribbon (TrackCollider enforces that), so the only
+ * question left is how high the surface is and how steep it is. Re-sampling the
+ * Catmull-Rom curve every step would allocate; instead the closed curve is
+ * baked once into a short polyline and the lookup projects the car onto the
+ * nearest segment. Segment heights come from TrackPath, so the ramp is included
+ * automatically.
  */
 import { Vector3 } from 'three';
-import { ROOM } from '../config/constants.js';
 import { TRACK } from '../config/track.config.js';
 
 export class TrackSurface {
   constructor(trackPath) {
     this.trackPath = trackPath;
-    this.halfWidth = trackPath.halfWidth;
 
     const count = TRACK.physicsSamples;
     this.count = count;
@@ -44,24 +42,15 @@ export class TrackSurface {
       this.segmentY0[i] = p0.y;
       this.segmentY1[i] = p1.y;
     }
-
-    const rug = ROOM.rug;
-    this.rugX = rug.position[0];
-    this.rugZ = rug.position[2];
-    this.rugY = rug.position[1];
-    this.rugHalfWidth = rug.size[0] / 2;
-    this.rugHalfDepth = rug.size[1] / 2;
-    this.rugCos = Math.cos(rug.rotation);
-    this.rugSin = Math.sin(rug.rotation);
   }
 
-  /** Allocate the reusable result objects used by ToyF1Car. */
+  /** Allocate the reusable result object used by ToyF1Car. */
   createResult() {
-    return { onTrack: false, onRug: false, height: 0, distance: 0 };
+    return { height: 0 };
   }
 
   /**
-   * Project (x, z) onto the nearest track segment and write the result into
+   * Project (x, z) onto the nearest track segment and write its height into
    * `out`. Allocation-free after construction.
    */
   sample(x, z, out) {
@@ -89,32 +78,7 @@ export class TrackSurface {
       }
     }
 
-    out.distance = Math.sqrt(bestDistance2);
-    out.onTrack = out.distance <= this.halfWidth;
-    out.onRug = false;
-
-    if (out.onTrack) {
-      out.height = bestHeight;
-      return out;
-    }
-
-    // Outside the ribbon the car is on the rug or the bare floor. The rug is
-    // almost axis aligned, but rotate into its local frame so the corners are
-    // still honest if a designer nudges its rotation.
-    const dx = x - this.rugX;
-    const dz = z - this.rugZ;
-    const localX = dx * this.rugCos - dz * this.rugSin;
-    const localZ = dx * this.rugSin + dz * this.rugCos;
-    if (
-      Math.abs(localX) <= this.rugHalfWidth &&
-      Math.abs(localZ) <= this.rugHalfDepth
-    ) {
-      out.onRug = true;
-      out.height = this.rugY;
-    } else {
-      out.height = 0;
-    }
-
+    out.height = bestHeight;
     return out;
   }
 }

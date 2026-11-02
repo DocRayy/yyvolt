@@ -1,10 +1,9 @@
 /**
- * The player's toy F1 car, built entirely from primitives.
+ * The player's toy F3 car, built entirely from primitives.
  *
- * The model root is the ground contact point and points down local -Z. A child
- * `body` group carries the suspension pitch/roll so the four wheels stay
- * planted. Camera mounts and the night lighting live in the same model so
- * CameraRig never has to know how the car is assembled.
+ * The F3 is the smallest of the three: overall scale about 0.9, shorter than
+ * the F2 and with smaller wheels. It keeps single-element wings, a short nose,
+ * and a small air intake, giving it the most forgiving handling of the three.
  */
 import {
   BoxGeometry,
@@ -20,10 +19,10 @@ import {
   TorusGeometry,
 } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { CAR } from '../config/car.config.js';
-import { COLORS } from '../config/constants.js';
-import { DAY_PRESET, NIGHT_PRESET } from '../config/lighting.config.js';
-import { clamp, lerp } from '../utils/math.js';
+import { CAR } from '../../config/car.config.js';
+import { COLORS } from '../../config/constants.js';
+import { DAY_PRESET, NIGHT_PRESET } from '../../config/lighting.config.js';
+import { clamp, lerp } from '../../utils/math.js';
 
 function addMesh(parent, geometry, material, x = 0, y = 0, z = 0) {
   const mesh = new Mesh(geometry, material);
@@ -42,7 +41,7 @@ function addRounded(parent, width, height, depth, radius, material, x, y, z) {
   return addMesh(parent, geometry, material, x, y, z);
 }
 
-export class CarModel {
+export class F3Model {
   constructor(textures, { headlightCount = 2 } = {}) {
     this.headlightCount = headlightCount;
     this.group = new Group();
@@ -138,6 +137,11 @@ export class CarModel {
     this.buildDriver();
     this.buildSticker();
     this.buildMounts();
+    this.cockpitEye = this.mounts.cockpitEye;
+    this.tcam = this.mounts.tcam;
+    this.nose = this.mounts.nose;
+    this.wheelCam = this.mounts.wheelCam;
+
     this.buildLights();
     this.setNightFactor(0);
   }
@@ -145,19 +149,18 @@ export class CarModel {
   buildChassis() {
     const m = this.materials;
 
-    // Floor plank and main tub. The tub is the yellow livery; navy sidepods
-    // and wings give the car the toy F1 colour split.
-    addBox(this.body, 0.24, 0.018, 0.5, m.carbon, 0, 0.042, 0);
-    addRounded(this.body, 0.16, 0.085, 0.3, 0.03, m.yellow, 0, 0.105, 0);
-    addBox(this.body, 0.22, 0.018, 0.06, m.carbon, 0, 0.05, 0.25);
+    // About 0.9 scale of the F2: shorter body, smaller wheels, small air intake.
+    addBox(this.body, 0.24, 0.018, 0.42, m.carbon, 0, 0.042, 0);
+    addRounded(this.body, 0.16, 0.085, 0.24, 0.03, m.yellow, 0, 0.105, 0);
+    addBox(this.body, 0.22, 0.018, 0.06, m.carbon, 0, 0.05, 0.2);
 
     const nose = addMesh(
       this.body,
-      new CylinderGeometry(0.058, 0.024, 0.24, 14),
+      new CylinderGeometry(0.058, 0.024, 0.18, 14),
       m.yellow,
       0,
       0.095,
-      -0.26,
+      -0.22,
     );
     nose.rotation.x = Math.PI / 2;
     addMesh(
@@ -166,30 +169,32 @@ export class CarModel {
       m.yellow,
       0,
       0.095,
-      -0.38,
+      -0.3,
     );
 
-    addRounded(this.body, 0.11, 0.022, 0.16, 0.01, m.carbon, 0, 0.154, 0.02);
-    addRounded(this.body, 0.13, 0.045, 0.07, 0.02, m.navy, 0, 0.16, 0.105);
-    addRounded(this.body, 0.11, 0.07, 0.17, 0.03, m.yellow, 0, 0.155, 0.18);
-    addRounded(this.body, 0.06, 0.045, 0.08, 0.015, m.navy, 0, 0.205, 0.075);
-    addBox(this.body, 0.012, 0.055, 0.13, m.navy, 0, 0.205, 0.185);
+    addRounded(this.body, 0.11, 0.022, 0.12, 0.01, m.carbon, 0, 0.14, 0.02);
+    addRounded(this.body, 0.12, 0.045, 0.06, 0.02, m.navy, 0, 0.145, 0.07);
+    addRounded(this.body, 0.10, 0.07, 0.13, 0.03, m.yellow, 0, 0.14, 0.13);
+    // Small air intake on the hood.
+    addRounded(this.body, 0.05, 0.01, 0.02, 0.005, m.carbon, 0, 0.135, -0.15);
+    addRounded(this.body, 0.05, 0.01, 0.02, 0.005, m.carbon, 0, 0.135, -0.19);
+    addBox(this.body, 0.012, 0.055, 0.10, m.navy, 0, 0.185, 0.145);
 
     for (const side of [-1, 1]) {
-      addRounded(this.body, 0.06, 0.075, 0.22, 0.025, m.navy, side * 0.09, 0.105, 0.035);
-      addBox(this.body, 0.05, 0.045, 0.018, m.carbon, side * 0.09, 0.1, -0.078);
-      addBox(this.body, 0.045, 0.006, 0.16, m.yellow, side * 0.09, 0.145, 0.035);
+      addRounded(this.body, 0.06, 0.075, 0.16, 0.025, m.navy, side * 0.09, 0.105, 0.02);
+      addBox(this.body, 0.05, 0.045, 0.018, m.carbon, side * 0.09, 0.1, -0.068);
+      addBox(this.body, 0.045, 0.006, 0.13, m.yellow, side * 0.09, 0.14, 0.02);
     }
 
     // A tiny rear crash structure and diffuser finish the silhouette.
-    addBox(this.body, 0.1, 0.05, 0.06, m.navy, 0, 0.11, 0.27);
-    addBox(this.body, 0.22, 0.02, 0.06, m.carbon, 0, 0.05, 0.25);
+    addBox(this.body, 0.1, 0.05, 0.06, m.navy, 0, 0.11, 0.21);
+    addBox(this.body, 0.18, 0.02, 0.06, m.carbon, 0, 0.05, 0.2);
 
     for (const side of [-1, 1]) {
-      addBox(this.body, 0.075, 0.008, 0.012, m.carbon, side * 0.115, 0.07, -0.19);
-      addBox(this.body, 0.075, 0.008, 0.012, m.carbon, side * 0.115, 0.1, -0.19);
-      addBox(this.body, 0.075, 0.008, 0.012, m.carbon, side * 0.115, 0.07, 0.19);
-      addBox(this.body, 0.075, 0.008, 0.012, m.carbon, side * 0.115, 0.1, 0.19);
+      addBox(this.body, 0.075, 0.008, 0.012, m.carbon, side * 0.115, 0.07, -0.16);
+      addBox(this.body, 0.075, 0.008, 0.012, m.carbon, side * 0.115, 0.1, -0.16);
+      addBox(this.body, 0.075, 0.008, 0.012, m.carbon, side * 0.115, 0.07, 0.16);
+      addBox(this.body, 0.075, 0.008, 0.012, m.carbon, side * 0.115, 0.1, 0.16);
     }
 
   }
@@ -197,21 +202,17 @@ export class CarModel {
   buildAero() {
     const m = this.materials;
 
-    addBox(this.body, 0.34, 0.012, 0.09, m.navy, 0, 0.045, -0.34);
-    addBox(this.body, 0.3, 0.009, 0.045, m.navy, 0, 0.058, -0.3);
-    addBox(this.body, 0.32, 0.004, 0.012, m.yellow, 0, 0.052, -0.382);
-    for (const side of [-1, 1]) {
-      addBox(this.body, 0.012, 0.06, 0.1, m.navy, side * 0.17, 0.065, -0.34);
-      addBox(this.body, 0.012, 0.035, 0.012, m.navy, side * 0.05, 0.07, -0.32);
-    }
+    // Single-element front wing, trimmed for the smaller F3.
+    addBox(this.body, 0.3, 0.012, 0.08, m.navy, 0, 0.045, -0.27);
 
-    addBox(this.body, 0.3, 0.012, 0.08, m.navy, 0, 0.245, 0.275);
-    addBox(this.body, 0.28, 0.008, 0.045, m.navy, 0, 0.223, 0.29);
-    addBox(this.body, 0.3, 0.004, 0.022, m.yellow, 0, 0.251, 0.275);
+    // Simplified rear wing: one element, shorter than the F2.
+    addBox(this.body, 0.25, 0.012, 0.06, m.navy, 0, 0.225, 0.225);
+    addBox(this.body, 0.23, 0.008, 0.035, m.navy, 0, 0.203, 0.24);
+    addBox(this.body, 0.25, 0.004, 0.016, m.yellow, 0, 0.233, 0.225);
     for (const side of [-1, 1]) {
-      addBox(this.body, 0.012, 0.1, 0.1, m.navy, side * 0.15, 0.25, 0.275);
+      addBox(this.body, 0.012, 0.07, 0.07, m.navy, side * 0.125, 0.225, 0.225);
     }
-    addBox(this.body, 0.02, 0.08, 0.03, m.navy, 0, 0.19, 0.265);
+    addBox(this.body, 0.02, 0.08, 0.03, m.navy, 0, 0.17, 0.225);
   }
 
   buildWheels() {
@@ -219,17 +220,20 @@ export class CarModel {
       CAR.dimensions;
     const m = this.materials;
 
-    const tireGeometry = new CylinderGeometry(wheelRadius, wheelRadius, wheelWidth, 20);
+    // F3 uses smaller wheels (about 0.9 of the F1/F2 radius and width).
+    const f3WheelRadius = wheelRadius * 0.9;
+    const f3WheelWidth = wheelWidth * 0.9;
+    const tireGeometry = new CylinderGeometry(f3WheelRadius, f3WheelRadius, f3WheelWidth, 20);
     const rimGeometry = new CylinderGeometry(
-      wheelRadius * 0.58,
-      wheelRadius * 0.58,
-      wheelWidth + 0.004,
+      f3WheelRadius * 0.58,
+      f3WheelRadius * 0.58,
+      f3WheelWidth + 0.004,
       12,
     );
     const hubGeometry = new CylinderGeometry(
-      wheelRadius * 0.18,
-      wheelRadius * 0.18,
-      wheelWidth + 0.014,
+      f3WheelRadius * 0.18,
+      f3WheelRadius * 0.18,
+      f3WheelWidth + 0.014,
       10,
     );
     tireGeometry.rotateZ(Math.PI / 2);
@@ -239,7 +243,7 @@ export class CarModel {
     for (const z of [frontAxleZ, rearAxleZ]) {
       for (const side of [-1, 1]) {
         const pivot = new Group();
-        pivot.position.set(side * wheelX, wheelRadius, z);
+        pivot.position.set(side * wheelX, f3WheelRadius, z);
         this.group.add(pivot);
 
         const wheel = new Group();
@@ -381,8 +385,11 @@ export class CarModel {
     }
 
     const [x, y, z] = anchors.tail;
-    addBox(this.body, 0.15, 0.03, 0.02, this.materials.carbon, x, y, z - 0.008);
-    addBox(this.body, 0.13, 0.018, 0.012, this.tailMaterial, x, y, z);
+    this.taillights = [];
+    const tailHousing = addBox(this.body, 0.15, 0.03, 0.02, this.materials.carbon, x, y, z - 0.008);
+    this.taillights.push(tailHousing);
+    const tailLight = addBox(this.body, 0.13, 0.018, 0.012, this.tailMaterial, x, y, z);
+    this.taillights.push(tailLight);
   }
 
   setSteering(angle) {
@@ -464,5 +471,39 @@ export class CarModel {
     );
     this.tailMaterial.emissiveIntensity =
       base * (this.braking ? CAR.lights.brakeMultiplier : 1);
+  }
+
+  setColor(hex) {
+    // The body takes the chosen colour. The accent stripes and wing endplates
+    // flip to white on a dark body and navy on a light body, so contrast stays
+    // readable and nothing is resized or rebuilt.
+    const newColor =
+      typeof hex === 'string' ? parseInt(hex.replace('#', ''), 16) : hex;
+
+    const r = (newColor >> 16) & 0xff;
+    const g = (newColor >> 8) & 0xff;
+    const b = newColor & 0xff;
+    const lin = c => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    const lum = 0.2126 * lin(r / 255) + 0.7152 * lin(g / 255) + 0.0722 * lin(b / 255);
+
+    this.materials.yellow.color = newColor;
+    this.materials.navy.color = lum < 0.5 ? 0xffffff : COLORS.liveryNavy;
+  }
+
+  dispose() {
+    // Free the model's owned geometry, materials, textures, and lights on a
+    // car switch so the engine never grows its heap. Geometry is pre-created
+    // once per class, so this only tears down what this instance owns.
+    if (!this.group) return;
+    for (const material of Object.values(this.materials)) {
+      material.dispose();
+    }
+    this.group.traverse((object) => {
+      if (object.isMesh) object.geometry?.dispose();
+      else if (object.isLight) object.dispose();
+    });
+    this.group.clear();
+    this.materials = null;
+    this.group = null;
   }
 }
